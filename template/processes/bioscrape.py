@@ -7,6 +7,7 @@ TODO: Replace the template code to implement your own process.
 from __future__ import absolute_import, division, print_function
 
 import os
+import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import (
@@ -28,6 +29,12 @@ NAME = 'template'
 #         self.process2 = Bioscrape({'_parallel': True, 'sbml_file': 'model2.xml'})
 #         self.process3 = Bioscrape({'_parallel': True, 'sbml_file': 'model3.xml'})
 
+def get_delta(before, after):
+    # assuming before and after have the same keys
+    return {
+        key: after[key] - before_value
+        for key, before_value in before.items()}
+    
 
 class Bioscrape(Process):
     '''
@@ -39,7 +46,8 @@ class Bioscrape(Process):
 
     # declare default parameters as class variables
     defaults = {
-        'sbml_file': 'model.xml'}
+        'sbml_file': 'model.xml',
+        'internal_dt': 0.01}
 
     def __init__(self, initial_parameters=None):
         if initial_parameters is None:
@@ -49,6 +57,9 @@ class Bioscrape(Process):
 
         # get the parameters out of initial_parameters if available, or use defaults
         self.sbml_file = self.parameters['sbml_file']
+        self.internal_dt = self.parameters['internal_dt']
+
+        # load the sbml file to create the model
         self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
 
         # create the interface
@@ -56,6 +67,17 @@ class Bioscrape(Process):
 
         # create a Simulator
         self.simulator = DeterministicSimulator()
+
+    def get_state(self, array):
+        mapping = self.model.get_species2index()
+
+        return {
+            species: array[index]
+            for species, index in mapping.items()}
+
+    def initial_state(self):
+        state = self.model.get_species_array()
+        return self.get_state(state)
 
     def ports_schema(self):
         '''
@@ -81,13 +103,20 @@ class Bioscrape(Process):
 
             'rates': {}}
 
-
     def next_update(self, timestep, states):
         self.interface.py_prep_deterministic_simulation()
         self.model.set_species(states['species'])
 
-        import ipdb; ipdb.set_trace()
+        timepoints = np.arange(0, timestep, self.internal_dt)
+        output = self.simulator.py_simulate(self.interface, timepoints)
+        result = output.py_get_result()[-1]
+        result_state = self.get_state(result)
+        delta = get_delta(states['species'], result_state)
 
+        update = {
+            'species': delta}
+        
+        return update
 
 
 def run_bioscrape_process():
@@ -100,9 +129,13 @@ def run_bioscrape_process():
     initial_parameters = {
         'sbml_file': 'Notebooks/model1.xml'}
     bioscrape_process = Bioscrape(initial_parameters)
+    state = bioscrape_process.initial_state()
 
     # run the simulation
-    sim_settings = {'total_time': 10}
+    sim_settings = {
+        'total_time': 10,
+        'initial_state': {
+            'species': state}}
     output = simulate_process_in_experiment(bioscrape_process, sim_settings)
 
     # Return the data from the simulation.
