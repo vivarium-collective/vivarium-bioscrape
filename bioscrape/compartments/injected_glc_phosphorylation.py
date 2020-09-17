@@ -13,7 +13,7 @@ from vivarium.core.process import Generator
 from vivarium.library.pretty import format_dict
 from vivarium.processes.injector import Injector
 
-from template.processes.glucose_phosphorylation import GlucosePhosphorylation
+from bioscrape.processes.glucose_phosphorylation import GlucosePhosphorylation
 
 
 class InjectedGlcPhosphorylation(Generator):

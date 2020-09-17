@@ -12,7 +12,7 @@ your own models. To get started, check out the
 guide of the documentation. What follows is a template `README.md`.
 
 <!--
-TODO: Rename the `template` folder to something that makes sense for
+TODO: Rename the `bioscrape` folder to something that makes sense for
 your project.
 -->
 

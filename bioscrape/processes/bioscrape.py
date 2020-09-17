@@ -1,7 +1,7 @@
 '''
-Execute by running: ``python template/process/template_process.py``
+Execute by running: ``python -m  bioscrape.processes.bioscrape.py``
 
-TODO: Replace the template code to implement your own process.
+TODO: Replace the bioscrape code to implement your own process.
 '''
 
 from __future__ import absolute_import, division, print_function
@@ -19,15 +19,10 @@ from vivarium.core.composition import (
 from bioscrape.types import Model
 from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface
 
-# a global NAME is used for the output directory and for the process name
-NAME = 'template'
+
+NAME = 'bioscrape'
 
 
-# class ExpressionModel(Generator):
-#     def __init__(self, config):
-#         self.process1 = Bioscrape({'_parallel': True, 'sbml_file': 'model1.xml'})
-#         self.process2 = Bioscrape({'_parallel': True, 'sbml_file': 'model2.xml'})
-#         self.process3 = Bioscrape({'_parallel': True, 'sbml_file': 'model3.xml'})
 
 def get_delta(before, after):
     # assuming before and after have the same keys
@@ -38,22 +33,22 @@ def get_delta(before, after):
 
 class Bioscrape(Process):
     '''
-    This mock process provides a basic template that can be used for a new process
+    This mock process provides a basic bioscrape that can be used for a new process
     '''
 
     # give the process a name, so that it can register in the process_repository
-    name = 'Bioscrape'
+    name = NAME
 
     # declare default parameters as class variables
     defaults = {
         'sbml_file': 'model.xml',
         'internal_dt': 0.01}
 
-    def __init__(self, initial_parameters=None):
-        if initial_parameters is None:
-            initial_parameters = {}
+    def __init__(self, parameters=None):
+        if parameters is None:
+            parameters = {}
 
-        super(Bioscrape, self).__init__(initial_parameters)
+        super(Bioscrape, self).__init__(parameters)
 
         # get the parameters out of initial_parameters if available, or use defaults
         self.sbml_file = self.parameters['sbml_file']
