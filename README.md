@@ -1,44 +1,28 @@
-# Template Vivarium Project
+# Vivarium-Bioscrape
 
 Visit [the Vivarium Core
 documentation](https://vivarium-core.readthedocs.io/) to learn how to
 use the core Vivarium engine to create computational biology models.
 
-## Using this Template
-
-This repository contains a skeleton project you can build on to create
-your own models. To get started, check out the
-[getting started](https://vivarium-core.rtfd.io/getting_started.html)
-guide of the documentation. What follows is a template `README.md`.
-
-<!--
-TODO: Rename the `bioscrape` folder to something that makes sense for
-your project.
--->
-
-------------------------------------------------------------------------
-
-# Project Name
-
-<!--
-TODO: Fill in your own project name
--->
-
-Introduction to your project.
-
-<!--
-TODO: Fill in your own introduction.
--->
-
 ## Installation
 
-Explain how users can get up and running.
+To run this package from within a local vivarium-bioscrape directory, you need 
+[Bioscrape](https://github.com/biocircuits/bioscrape) installed locally, and 
+set the python path to that directory. This is required because Bioscrape is not 
+available as a pip library.
 
-<!--
-TODO: Fill in your own installation instructions. This might be as
-simple as:
+We recommend setting up a [pyenv](https://github.com/pyenv/pyenv) in the bioscrape 
+directory (with Python>=3.7), and then following the [Bioscrape installation instructions](
+https://github.com/biocircuits/bioscrape/wiki/Installation).
+
+Once bioscrape is set up, go to your vivarium-bioscrape directory and set your python path:
 
 ```
-pip install <your package name>
+$ export PYTHONPATH="/path/to/bioscrape"
 ```
--->
+
+You can then run the vivarium-bioscrape process with the module format:
+
+```
+$ python -m vivarium_environment.processes.bioscrape
+```
