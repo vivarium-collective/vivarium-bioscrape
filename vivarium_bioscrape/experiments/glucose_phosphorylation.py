@@ -21,7 +21,7 @@ from vivarium.core.emitter import (
 )
 from vivarium.core.experiment import Experiment
 
-from vivarium_bioscrape.compartments.injected_glc_phosphorylation import (
+from vivarium_bioscrape.composites.injected_glc_phosphorylation import (
     InjectedGlcPhosphorylation,
 )
 

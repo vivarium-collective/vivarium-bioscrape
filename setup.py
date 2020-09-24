@@ -12,7 +12,7 @@ setup(
     packages=[
         'bioscrape',
         'bioscrape.processes',
-        'bioscrape.compartments',
+        'bioscrape.composites',
         'bioscrape.experiments',
     ],
     author='',  # TODO: Put your name here.
