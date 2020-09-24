@@ -7,7 +7,7 @@ with open("README.md", 'r') as readme:
     long_description = readme.read()
 
 setup(
-    name='',  # TODO: Put your package name here.
+    name='vivarium-bioscrape',
     version='0.0.1',
     packages=[
         'vivarium_bioscrape',
