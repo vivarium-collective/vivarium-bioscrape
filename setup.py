@@ -10,10 +10,10 @@ setup(
     name='',  # TODO: Put your package name here.
     version='0.0.1',
     packages=[
-        'bioscrape',
-        'bioscrape.processes',
-        'bioscrape.composites',
-        'bioscrape.experiments',
+        'vivarium_bioscrape',
+        'vivarium_bioscrape.processes',
+        'vivarium_bioscrape.composites',
+        'vivarium_bioscrape.experiments',
     ],
     author='',  # TODO: Put your name here.
     author_email='',  # TODO: Put your email here.
