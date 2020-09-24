@@ -72,7 +72,8 @@ class Bioscrape(Process):
 
     def initial_state(self):
         state = self.model.get_species_array()
-        return self.get_state(state)
+        return {
+            'species': self.get_state(state)}
 
     def ports_schema(self):
         '''
@@ -124,13 +125,11 @@ def run_bioscrape_process():
     initial_parameters = {
         'sbml_file': 'Notebooks/model1.xml'}
     bioscrape_process = Bioscrape(initial_parameters)
-    state = bioscrape_process.initial_state()
 
     # run the simulation
     sim_settings = {
         'total_time': 10,
-        'initial_state': {
-            'species': state}}
+        'initial_state': bioscrape_process.initial_state()}
     output = simulate_process_in_experiment(bioscrape_process, sim_settings)
 
     # Return the data from the simulation.
