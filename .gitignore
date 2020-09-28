@@ -5,3 +5,4 @@ out/
 vivarium_bioscrape.egg-info/
 build/
 dist/
+Notebooks/temp_sbml_file.xml
