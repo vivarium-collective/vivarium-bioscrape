@@ -77,11 +77,14 @@ def main():
     # make the composite
     composite = BioscrapeComposite({})
 
+    initial_state = composite.initial_state()
+    initial_state['species']['dna_G'] = 10.0
+
     # run a simulation
     sim_settings = {
-        'total_time': 100,
-        'initial_state': composite.initial_state()
-    }
+        'total_time': 1000,
+        'initial_state': initial_state}
+
     output = simulate_compartment_in_experiment(composite, sim_settings)
 
     # plot
