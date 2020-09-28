@@ -24,5 +24,5 @@ $ export PYTHONPATH="/path/to/bioscrape"
 You can then run the vivarium-bioscrape process with the module format:
 
 ```
-$ python -m vivarium_environment.processes.bioscrape
+$ python -m vivarium_bioscrape.processes.bioscrape
 ```
