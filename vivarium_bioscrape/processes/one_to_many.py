@@ -3,20 +3,16 @@ import numpy as np
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 from vivarium.core.process import Deriver
 from vivarium_bioscrape.library.schema import array_to
-from vivarium.core.composition import (
-    simulate_process_in_experiment,
-    PROCESS_OUT_DIR,
-)
+from vivarium.core.composition import simulate_process_in_experiment
 
 
 class OneToMany(Deriver):
-    name = 'one_to_many'
 
-    # declare default parameters as class variables
+    name = 'one_to_many'
     defaults = {
         'stoichiometry': np.array([[]]),
-        'many_keys': [],
         'one_key': '',
+        'many_keys': [],
     }
 
     def __init__(self, parameters=None):
@@ -24,9 +20,10 @@ class OneToMany(Deriver):
 
     def ports_schema(self):
         return {
-            'delta_one': {
+            'one_delta': {
                 self.parameters['one_key']: {
-                    '_default': 0.0,}
+                    '_default': 0.0,
+                }
             },
             'one': {
                 self.parameters['one_key']: {
@@ -34,7 +31,7 @@ class OneToMany(Deriver):
                     '_updater': 'accumulate',
                 }
             },
-            'delta_many': {
+            'many_deltas': {
                 '*': {
                     '_default': 0.0,
                 }
@@ -48,29 +45,30 @@ class OneToMany(Deriver):
         }
 
     def next_update(self, timestep, states):
-        delta_many = np.array(list(states['delta_many'].values()))
-        delta_one = np.array(states['delta_one'][self.parameters['one_key']])
+
+        # pull the relevant values into arrays
+        one_delta = np.array(states['one_delta'][self.parameters['one_key']])
+        one = np.array(states['one'][self.parameters['one_key']])
+        many_deltas = np.array([
+            value if key in self.parameters['many_keys'] else 0.0
+            for key, value in states['many_deltas'].items()])
         many = np.array(list(states['many'].values()))
 
-        # calculations
-        new_one = float(np.sum(delta_many))
-        new_many = delta_one / np.sum(many) * np.dot(delta_many, self.parameters['stoichiometry'])
+        # transform
+        one_update = float(np.sum(many_deltas))
+        many_updates = one_delta / one * np.dot(many, self.parameters['stoichiometry'])
 
         update = {
-            'one': new_one,
-            'many': array_to(states['many'].keys(), new_many)
+            'one': one_update,
+            'many': array_to(states['many'].keys(), many_updates)
         }
-
-        import ipdb;
-        ipdb.set_trace()
-
+        
         return update
 
 
 
-def test_adaptor():
-
-    # parameters
+def test_one_to_many():
+    # get parameters from model2
     initial_parameters = {
         'sbml_file': 'Notebooks/model2.xml'}
     bioscrape_process = Bioscrape(initial_parameters)
@@ -90,16 +88,16 @@ def test_adaptor():
     # initial state
     state = {
         'one': {one_key: np.sum([value for key, value in many_state.items() if 'rna' in key])},
-        'delta_one': {one_key: 0.0},
+        'on_delta': {one_key: 0.0},
         'many': many_state,
-        'delta_many': {
-            mol_id: 0.0 for mol_id in many_state.keys()}
+        'many_deltas': {
+            mol_id: 0.5 for mol_id in many_state.keys()}
     }
 
     settings = {
         'total_time': 10,
         'initial_state': state}
-    output = simulate_process_in_experiment(adaptor,settings)
+    output = simulate_process_in_experiment(adaptor, settings)
 
     import ipdb; ipdb.set_trace()
 
@@ -107,5 +105,5 @@ def test_adaptor():
 
 
 if __name__ == '__main__':
-    test_adaptor()
+    test_one_to_many()
 
