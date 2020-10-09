@@ -1,9 +1,9 @@
 import numpy as np
 
-from vivarium_bioscrape.processes.bioscrape import Bioscrape
 from vivarium.core.process import Deriver
+from vivarium.core.experiment import pp
+from vivarium_bioscrape.processes.bioscrape import Bioscrape
 from vivarium_bioscrape.library.schema import array_to
-from vivarium.core.composition import simulate_process_in_experiment
 
 
 class OneToMany(Deriver):
@@ -52,17 +52,23 @@ class OneToMany(Deriver):
         many_deltas = np.array([
             value if key in self.parameters['many_keys'] else 0.0
             for key, value in states['many_deltas'].items()])
-        many = np.array(list(states['many'].values()))
+        many = np.array([
+            value if key in self.parameters['many_keys'] else 0.0
+            for key, value in states['many'].items()])
 
         # transform
-        one_update = float(np.sum(many_deltas))
-        many_updates = one_delta / one * np.dot(many, self.parameters['stoichiometry'])
+        one_update = np.sum(many_deltas)
+        if one.any():
+            many_updates = one_delta * many / one
+        else:
+            many_updates = np.zeros_like(many)
 
+        # return update
         update = {
-            'one': one_update,
+            'one': {self.parameters['one_key']: one_update},
             'many': array_to(states['many'].keys(), many_updates)
         }
-        
+
         return update
 
 
@@ -85,22 +91,40 @@ def test_one_to_many():
         'one_key': one_key,
         })
 
-    # initial state
-    state = {
-        'one': {one_key: np.sum([value for key, value in many_state.items() if 'rna' in key])},
-        'on_delta': {one_key: 0.0},
+    # test state 1
+    state_1 = {
+        'one': {
+            one_key: np.sum([value
+                             for key, value in many_state.items()
+                             if 'rna' in key])},
+        'one_delta': {
+            one_key: 0.0},
         'many': many_state,
         'many_deltas': {
-            mol_id: 0.5 for mol_id in many_state.keys()}
-    }
+            mol_id: 0.5
+            for mol_id in many_state.keys()}}
 
-    settings = {
-        'total_time': 10,
-        'initial_state': state}
-    output = simulate_process_in_experiment(adaptor, settings)
+    transform_1 = adaptor.next_update(0, state_1)
+    print('state 1 transform:')
+    pp(transform_1)
+
+    # test state 2
+    state_2 = {
+        'one': {
+            one_key: 10},
+        'one_delta': {
+            one_key: 0.5},
+        'many': many_state,
+        'many_deltas': {
+            mol_id: 0.0
+            for mol_id in many_state.keys()}}
+
+    transform_2 = adaptor.next_update(0, state_2)
+    print('state 2 transform:')
+    pp(transform_2)
+
 
     import ipdb; ipdb.set_trace()
-
 
 
 
