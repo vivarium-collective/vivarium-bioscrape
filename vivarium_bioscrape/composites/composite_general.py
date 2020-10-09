@@ -10,9 +10,9 @@ from vivarium.core.experiment import Experiment
 from vivarium.core.process import Generator
 from vivarium.core.composition import (
     simulate_compartment_in_experiment,
-    plot_simulation_output,
     COMPARTMENT_OUT_DIR,
 )
+from vivarium.plots.simulation_output import plot_simulation_output
 from vivarium.library.dict_utils import deep_merge
 
 # import processes

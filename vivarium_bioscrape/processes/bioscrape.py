@@ -12,9 +12,9 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import (
     simulate_process_in_experiment,
-    plot_simulation_output,
     PROCESS_OUT_DIR,
 )
+from vivarium.plots.simulation_output import plot_simulation_output
 
 from bioscrape.types import Model
 from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface
@@ -29,7 +29,7 @@ def get_delta(before, after):
     return {
         key: after[key] - before_value
         for key, before_value in before.items()}
-    
+
 
 class Bioscrape(Process):
     '''
@@ -96,8 +96,14 @@ class Bioscrape(Process):
                     '_updater': 'accumulate',
                     '_emit': True}
                 for species in self.model.get_species()},
-
-            'rates': {}}
+            'delta_species': {
+                species: {
+                    '_default': 0.0,
+                    '_updater': 'set',
+                    '_emit': True}
+                for species in self.model.get_species()},
+            'rates': {},
+        }
 
     def next_update(self, timestep, states):
         self.interface.py_prep_deterministic_simulation()
@@ -109,10 +115,9 @@ class Bioscrape(Process):
         result_state = self.get_state(result)
         delta = get_delta(states['species'], result_state)
 
-        update = {
-            'species': delta}
-        
-        return update
+        return {
+            'species': delta,
+            'delta_species': delta}
 
 
 def run_bioscrape_process():
