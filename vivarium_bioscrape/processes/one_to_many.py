@@ -1,3 +1,9 @@
+"""
+run with:
+> python -m vivarium_bioscrape.processes.one_to_many
+"""
+
+
 import numpy as np
 
 from vivarium.core.process import Deriver
@@ -10,6 +16,7 @@ class OneToMany(Deriver):
 
     name = 'one_to_many'
     defaults = {
+        'adaptor': np.array([[]]),
         'stoichiometry': np.array([[]]),
         'one_key': '',
         'many_keys': [],
@@ -56,12 +63,18 @@ class OneToMany(Deriver):
             value if key in self.parameters['many_keys'] else 0.0
             for key, value in states['many'].items()])
 
-        # transform
+
+        import ipdb; ipdb.set_trace()
+
+
+        # projections
         one_update = np.sum(many_deltas)
         if one.any():
-            many_updates = one_delta * many / one
+            many_updates = one_delta / one * np.dot(many, self.parameters['stoichiometry'])
         else:
             many_updates = np.zeros_like(many)
+
+
 
         # return update
         update = {
@@ -107,6 +120,7 @@ def test_one_to_many():
     transform_1 = adaptor.next_update(0, state_1)
     print('state 1 transform:')
     pp(transform_1)
+
 
     # test state 2
     state_2 = {
