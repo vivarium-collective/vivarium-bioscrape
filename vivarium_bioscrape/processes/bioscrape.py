@@ -20,8 +20,20 @@ from bioscrape.types import Model
 from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface
 
 
-NAME = 'bioscrape'
+def get_model(file):
+    params = {'sbml_file': file}
+    process = Bioscrape(params)
+    return process.model
 
+
+def get_model_species(path):
+    model = get_model(path)
+    return model.get_species_dictionary()
+
+
+def get_model_species_ids(path):
+    model_species = get_model_species(path)
+    return list(model_species.keys())
 
 
 def get_delta(before, after):
@@ -29,6 +41,10 @@ def get_delta(before, after):
     return {
         key: after[key] - before_value
         for key, before_value in before.items()}
+
+
+NAME = 'bioscrape'
+
 
 
 class Bioscrape(Process):
@@ -166,3 +182,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

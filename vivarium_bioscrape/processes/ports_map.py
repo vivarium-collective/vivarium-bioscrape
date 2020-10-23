@@ -9,7 +9,10 @@ import numpy as np
 
 from vivarium.core.process import Deriver
 from vivarium.core.experiment import pp
-from vivarium_bioscrape.processes.bioscrape import Bioscrape
+from vivarium_bioscrape.processes.bioscrape import (
+    get_model_species,
+    get_model_species_ids,
+)
 from vivarium_bioscrape.library.schema import array_to
 
 
@@ -48,9 +51,10 @@ class OneWayMap(Deriver):
 
         # return update
         update = {
-            'output': array_to(
-                states['output'].keys(),
-                output_array)}
+            'output': {
+                '_updater': 'set',
+                '_value': array_to(
+                    states['output'].keys(),output_array)}}
 
         return update
 
@@ -64,6 +68,9 @@ class LinearMap(Deriver):
 
     def __init__(self, parameters=None):
         super(LinearMap, self).__init__(parameters)
+
+    def initial_state(self, config=None):
+        return {}
 
     def ports_schema(self):
         return {
@@ -91,15 +98,9 @@ class LinearMap(Deriver):
         row_deltas = np.array([
             value if key in self.parameters['row_keys'] else 0.0
             for key, value in states['row_deltas'].items()])
-        row_values = np.array([
-            value if key in self.parameters['row_keys'] else 0.0
-            for key, value in states['row'].items()])
         column_deltas = np.array([
             value if key in self.parameters['column_keys'] else 0.0
             for key, value in states['column_deltas'].items()])
-        column_values = np.array([
-            value if key in self.parameters['column_keys'] else 0.0
-            for key, value in states['column'].items()])
 
         # projection
         row_updates = np.dot(self.map(states), column_deltas)
@@ -129,34 +130,10 @@ def CRNMap(LinearMap):
 
 
 # testing
-def get_model(file):
-    params = {'sbml_file': file}
-    process = Bioscrape(params)
-    return process.model
-
-def get_model2():
-    return get_model('Notebooks/model2.xml')
-
-def get_model3():
-    return get_model('Notebooks/model3.xml')
-
-
-# def test_crn_map():
-#     input_model = get_model2()
-#     input_species = input_model.get_species_dictionary()
-#     input_keys = list(input_species.keys())
-#     output_model = get_model3()
-#     output_species = output_model.get_species_dictionary()
-#     output_keys = list(output_species.keys())
-#
-#     input_stoich = input_model.py_get_update_array().T
-
 def test_one_way_map():
-    input_model = get_model3()
-    input_species = input_model.get_species_dictionary()
+    input_species = get_model_species('Notebooks/model3.xml')
+    output_species = get_model_species('Notebooks/model2.xml')
     input_keys = list(input_species.keys())
-    output_model = get_model2()
-    output_species = output_model.get_species_dictionary()
     output_keys = list(output_species.keys())
 
     # define the projection
@@ -181,14 +158,10 @@ def test_one_way_map():
 
 
 def test_linear_map():
-
-    columns_model = get_model2()
-    columns = columns_model.get_species_dictionary()
-    column_keys = list(columns.keys())
-
-    rows_model = get_model3()
-    rows = rows_model.get_species_dictionary()
+    rows = get_model_species('Notebooks/model3.xml')
+    columns = get_model_species('Notebooks/model2.xml')
     row_keys = list(rows.keys())
+    column_keys = list(columns.keys())
 
     # define the projection
     column_vector = np.array(['rna' in key for key in column_keys])

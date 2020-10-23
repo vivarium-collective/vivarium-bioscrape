@@ -1,12 +1,11 @@
 """
-======================
-Bioscrape Composite #1
-======================
+===================
+Bioscrape Composite
+====================
 """
 import os
 
 # vivarium core imports
-from vivarium.core.experiment import Experiment
 from vivarium.core.process import Generator
 from vivarium.core.composition import (
     simulate_compartment_in_experiment,
@@ -20,6 +19,7 @@ from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 
 NAME = 'bioscrape_composer'
+
 
 class BioscrapeComposer(Generator):
 
@@ -64,6 +64,7 @@ class BioscrapeComposer(Generator):
         return {
             path: {
                 'species': ('species',),
+                'delta_species': ('deltas',),
                 'rates': ('rates',)}
             for path in self.config['model_paths']}
 

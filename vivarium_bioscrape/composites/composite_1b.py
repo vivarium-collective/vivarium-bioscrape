@@ -6,14 +6,13 @@ Bioscrape Composite #1
 import os
 
 # vivarium core imports
-from vivarium.core.experiment import Experiment
 from vivarium.core.process import Generator
 from vivarium.core.composition import (
     simulate_compartment_in_experiment,
-    plot_simulation_output,
     COMPARTMENT_OUT_DIR,
 )
 from vivarium.library.dict_utils import deep_merge
+from vivarium.plots.simulation_output import plot_simulation_output
 
 # import processes
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
@@ -60,10 +59,14 @@ class BioscrapeCompositeB(Generator):
                 'species': {
                     '_path': ('species',),
                     'rna_R': ('rna_T',)},
+                'delta_species': {
+                    '_path': ('deltas',),
+                    'rna_R': ('rna_T',)},
                 'rates': ('rates',),
             },
             'model_3': {
                 'species': ('species',),
+                'delta_species': ('deltas',),
                 'rates': ('rates',),
             },
         }
