@@ -8,7 +8,7 @@ import os
 import numpy as np
 
 # vivarium core imports
-from vivarium.core.experiment import Experiment
+from vivarium.core.experiment import pp
 from vivarium.core.process import Generator
 from vivarium.core.composition import (
     simulate_compartment_in_experiment,
@@ -20,7 +20,8 @@ from vivarium.library.dict_utils import deep_merge
 # import processes
 from vivarium_bioscrape.composites.composite_general import insert_topology
 from vivarium_bioscrape.processes.bioscrape import Bioscrape, get_model_species_ids
-from vivarium_bioscrape.processes.linear_map import LinearMap
+from vivarium_bioscrape.processes.one_way_map import OneWayMap
+from vivarium_bioscrape.library.schema import array_from, array_to
 
 NAME = 'bioscrape_connector'
 
@@ -44,14 +45,12 @@ class BioscrapeConnector(Generator):
         super(BioscrapeConnector, self).__init__(config)
         self.topology = self.initial_topology(self.config)
 
-        # TODO -- assert that connectors
-
-    def initial_state(self, config={}):
+    def initial_state(self, config=None):
         # TODO -- find and resolve conflicts
         network = self.generate()
         processes = network['processes']
 
-        # make initial state by merging the initial states of individual processes
+        # make initial state by merging initial states of processes
         initial_state = {}
         for name, process in processes.items():
             initial = process.initial_state()
@@ -64,22 +63,28 @@ class BioscrapeConnector(Generator):
 
     def generate_processes(self, config):
 
+        # make bioscrape processes
         models = {
             name: Bioscrape({'sbml_file': path})
             for name, path in config['models'].items()}
 
+        # make connection processes
         connections = {}
-        for (m1, m2, projection) in config['connections']:
-            m1_species = get_model_species_ids(config['models'][m1])
-            m2_species = get_model_species_ids(config['models'][m2])
+        for connection in config['connections']:
+            source = connection['source']
+            target = connection['target']
+            map = connection['map']
 
+            # TODO -- can this be done without calling get_model_species_ids?
+            source_species = get_model_species_ids(config['models'][source])
+            target_species = get_model_species_ids(config['models'][target])
             connector_config = {
-                'row_keys': m1_species,
-                'column_keys': m2_species,
-                'projection': projection}
+                'source_keys': source_species,
+                'target_keys': target_species,
+                'map': map}
+            connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)
 
-            connections[f'{m1}_{m2}_connector'] = LinearMap(connector_config)
-
+        # combine model and connection processes
         return {**models, **connections}
 
     def generate_topology(self, config):
@@ -97,12 +102,12 @@ class BioscrapeConnector(Generator):
 
         # make connections between model stores
         connections = {}
-        for (m1, m2, projection) in config['connections']:
-            connections[f'{m1}_{m2}_connector'] = {
-                'row': (f'{m1}_species',),
-                'row_deltas': (f'{m1}_deltas',),
-                'column': (f'{m2}_species',),
-                'column_deltas': (f'{m2}_deltas',),
+        for connection in config['connections']:
+            source = connection['source']
+            target = connection['target']
+            connections[f'{source}_{target}_connector'] = {
+                'source_deltas': (f'{source}_deltas',),
+                'target_state': (f'{target}_species',),
             }
 
         return {**models, **connections}
@@ -148,13 +153,19 @@ def main():
     model3_vector = np.array(['rna' in key for key in model3_keys])
     projection = np.outer(model1_vector/np.sum(model1_vector), model3_vector/np.sum(model3_vector))
 
+    # define map function
+    def map(states):
+        input_array = array_from(states['source_deltas'])
+        output_array = np.dot(input_array, projection)
+        return array_to(model3_keys, output_array)
+
     # configuration
     models = {
         '1': 'Notebooks/model1.xml',
         '3': 'Notebooks/model3.xml',
     }
     connections = [
-        ('1', '3', projection),
+        {'source': '1', 'target': '3', 'map': map},
     ]
 
     # make the composite
@@ -163,6 +174,17 @@ def main():
         connections=connections,
     )
 
+    # get processes and topology, print
+    network = composite.generate()
+    processes = network['processes']
+    topology = network['topology']
+
+    print('PROCESSES:')
+    pp(processes)
+    print('TOPOLOGY:')
+    pp(topology)
+
+    ## Run a simulation
     # initial state
     initial_state = composite.initial_state()
 
@@ -172,7 +194,7 @@ def main():
         'initial_state': initial_state}
     output = simulate_compartment_in_experiment(composite, sim_settings)
 
-    # plot
+    # plot simulation output
     plot_settings = {}
     plot_simulation_output(output, plot_settings, out_dir)
 

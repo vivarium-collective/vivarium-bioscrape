@@ -22,6 +22,9 @@ class OneWayMap(Deriver):
         super(OneWayMap, self).__init__(parameters)
         self.map = self.parameters['map']
 
+    def initial_state(self):
+        return {}
+
     def ports_schema(self):
         return {
             'source_deltas': {
