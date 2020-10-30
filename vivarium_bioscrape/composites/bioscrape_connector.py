@@ -20,7 +20,7 @@ from vivarium.library.dict_utils import deep_merge
 # import processes
 from vivarium_bioscrape.composites.composite_general import insert_topology
 from vivarium_bioscrape.processes.bioscrape import Bioscrape, get_model_species_ids
-from vivarium_bioscrape.processes.ports_map import LinearMap
+from vivarium_bioscrape.processes.linear_map import LinearMap
 
 NAME = 'bioscrape_connector'
 
