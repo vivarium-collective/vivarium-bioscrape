@@ -39,7 +39,8 @@ class OneWayMap(Deriver):
     def next_update(self, timestep, states):
         output = self.map(states)
         return {
-            'target_state': output}
+            'target_state': output,
+        }
 
 
 

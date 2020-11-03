@@ -20,16 +20,15 @@ from bioscrape.types import Model
 from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface
 
 
+# TODO -- remove all of these, use the Process to get species, ids
 def get_model(file):
     params = {'sbml_file': file}
     process = Bioscrape(params)
     return process.model
 
-
 def get_model_species(path):
     model = get_model(path)
     return model.get_species_dictionary()
-
 
 def get_model_species_ids(path):
     model_species = get_model_species(path)
@@ -58,7 +57,9 @@ class Bioscrape(Process):
     # declare default parameters as class variables
     defaults = {
         'sbml_file': 'model.xml',
-        'internal_dt': 0.01}
+        'internal_dt': 0.01,
+        'stochastic': False,
+    }
 
     def __init__(self, parameters=None):
         if parameters is None:
@@ -78,6 +79,10 @@ class Bioscrape(Process):
 
         # create a Simulator
         self.simulator = DeterministicSimulator()
+
+    def get_species_names(self):
+        model_species = self.model.get_species_dictionary()
+        return list(model_species.keys())
 
     def get_state(self, array):
         mapping = self.model.get_species2index()

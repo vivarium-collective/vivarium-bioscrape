@@ -2,6 +2,9 @@
 ===================
 Bioscrape Connector
 ===================
+
+run with:
+> python -m vivarium_bioscrape.composites.bioscrape_connector
 """
 import os
 
@@ -52,12 +55,17 @@ class BioscrapeConnector(Generator):
 
         # make initial state by merging initial states of processes
         initial_state = {}
-        for name, process in processes.items():
+        for name, process in self.models.items():
             initial = process.initial_state()
             initial_with_store = {
                 f'{name}_{store}': values
                 for store, values in initial.items()}
             initial_state = deep_merge(initial_state, initial_with_store)
+
+        # TODO -- after going through map, values need to be the same on either side
+        # TODO -- throw an exception, make them fix it
+        # for name, process in self.connections.items():
+        #     config = process.parameters
 
         return initial_state
 
@@ -65,8 +73,8 @@ class BioscrapeConnector(Generator):
 
         # make bioscrape processes
         models = {
-            name: Bioscrape({'sbml_file': path})
-            for name, path in config['models'].items()}
+            name: Bioscrape(parameters)
+            for name, parameters in config['models'].items()}
 
         # make connection processes
         connections = {}
@@ -75,14 +83,17 @@ class BioscrapeConnector(Generator):
             target = connection['target']
             map = connection['map']
 
-            # TODO -- can this be done without calling get_model_species_ids?
-            source_species = get_model_species_ids(config['models'][source])
-            target_species = get_model_species_ids(config['models'][target])
+            source_species = models[source].get_species_names()
+            target_species = models[target].get_species_names()
+
             connector_config = {
                 'source_keys': source_species,
                 'target_keys': target_species,
                 'map': map}
             connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)
+
+        self.models = models
+        self.connections = connections
 
         # combine model and connection processes
         return {**models, **connections}
@@ -111,6 +122,15 @@ class BioscrapeConnector(Generator):
             }
 
         return {**models, **connections}
+
+    def add_model(self):
+        # TODO -- to pass models in by name
+        # TODO add to self.models
+        pass
+
+    def add_connection(self):
+        # TODO add to self.connections
+        pass
 
     def add_mappings(self, config=None, model=None, species=None, rates=None):
         if config is None:
@@ -149,23 +169,45 @@ def main():
     model3_keys = get_model_species_ids('Notebooks/model3.xml')
 
     # define the projection
-    model1_vector = np.array(['rna' in key for key in model1_keys])
-    model3_vector = np.array(['rna' in key for key in model3_keys])
-    projection = np.outer(model1_vector/np.sum(model1_vector), model3_vector/np.sum(model3_vector))
+    model1_vector = np.array(['rna_T' == key for key in model1_keys])
+    model3_vector = np.array(['rna_T' == key for key in model3_keys])
+    projection_1_3 = np.outer(
+        model1_vector/np.sum(model1_vector),
+        model3_vector/np.sum(model3_vector))
+    # projection_3_1 = np.outer(
+    #     model3_vector/np.sum(model3_vector),
+    #     model1_vector/np.sum(model1_vector))
+    # TODO (William) HW -- is this needed?
+    model3_vector2 = np.array(['rna' in key for key in model3_keys])
+    projection_3_1 = np.outer(
+        model3_vector2/np.sum(model3_vector2),
+        model1_vector/np.sum(model1_vector))
 
     # define map function
-    def map(states):
+    def map_1_3(states):
         input_array = array_from(states['source_deltas'])
-        output_array = np.dot(input_array, projection)
+        output_array = np.dot(input_array, projection_1_3)
         return array_to(model3_keys, output_array)
 
+    def map_3_1(states):
+        input_array = array_from(states['source_deltas'])
+        output_array = np.dot(input_array, projection_3_1)
+        return array_to(model1_keys, output_array)
+
+
     # configuration
+    time_step = 10
     models = {
-        '1': 'Notebooks/model1.xml',
-        '3': 'Notebooks/model3.xml',
+        '1': {
+            'time_step': time_step,
+            'sbml_file': 'Notebooks/model1.xml'},
+        '3': {
+            'time_step': time_step,
+            'sbml_file': 'Notebooks/model3.xml'},
     }
     connections = [
-        {'source': '1', 'target': '3', 'map': map},
+        {'source': '1', 'target': '3', 'map': map_1_3},
+        {'source': '3', 'target': '1', 'map': map_3_1}
     ]
 
     # make the composite
@@ -187,10 +229,12 @@ def main():
     ## Run a simulation
     # initial state
     initial_state = composite.initial_state()
+    initial_state['1_species']['dna_G'] = 1
+    initial_state['1_species']['rna_T'] = 10
 
     # run a simulation
     sim_settings = {
-        'total_time': 100,
+        'total_time': 1000,
         'initial_state': initial_state}
     output = simulate_compartment_in_experiment(composite, sim_settings)
 
