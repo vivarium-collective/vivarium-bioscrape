@@ -78,19 +78,30 @@ def test_one_way_map():
     import ipdb; ipdb.set_trace()
 
 
+
 def test_one_to_many():
+    #One species is converted into many species, evenly.
     pass
 
 def test_many_to_one():
+    #Many species are converted into one species
     pass
 
 def test_many_to_many():
+    #Many species are converted into many species, evenly.
+    pass
+
+def test_one_to_many_stochiometrically_compatable():
+    #One species is converted to many species in a way that is 
+    #compatable with the stochiometric matrix of the manys species.
     pass
 
 def test_output_proportional():
+    #One species is converted into many species, proportionally to their amounts.
     pass
 
 def test_positive_negative():
+    #Negative deltas are treated mapped differently than positive deltas.
     pass
 
 if __name__ == '__main__':

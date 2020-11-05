@@ -45,6 +45,9 @@ class BioscrapeConnector(Generator):
         if 'connections' not in config:
             config['connections'] = connections
 
+        self.models = {}
+        self.connections = {}
+
         super(BioscrapeConnector, self).__init__(config)
         self.topology = self.initial_topology(self.config)
 
@@ -70,14 +73,22 @@ class BioscrapeConnector(Generator):
         return initial_state
 
     def generate_processes(self, config):
-
         # make bioscrape processes
-        models = {
-            name: Bioscrape(parameters)
-            for name, parameters in config['models'].items()}
+        for name, parameters in config['models'].items():
+            self.add_model(name = name, bioscrape_parameters = parameters)
+
+        for connection in config['connections']:
+            source = connection['source']
+            target = connection['target']
+            one_way_map = connection['map']
+            self.add_connection(source, target, one_way_map)
+
+        #models = {
+        #    name: Bioscrape(parameters)
+        #    for name, parameters in config['models'].items()}
 
         # make connection processes
-        connections = {}
+        """connections = {}
         for connection in config['connections']:
             source = connection['source']
             target = connection['target']
@@ -90,19 +101,19 @@ class BioscrapeConnector(Generator):
                 'source_keys': source_species,
                 'target_keys': target_species,
                 'map': one_way_map}
-            connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)
+            connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)"""
 
-        self.models = models
-        self.connections = connections
+
+        #self.models = models
+        #self.connections = connections
 
         # combine model and connection processes
-        return {**models, **connections}
+        return {**self.models, **self.connections}
 
     def generate_topology(self, config):
         return self.topology
 
     def initial_topology(self, config):
-
         # connect the models with their stores
         models = {
             name: {
@@ -116,11 +127,12 @@ class BioscrapeConnector(Generator):
         for connection in config['connections']:
             source = connection['source']
             target = connection['target']
-            self.connections[f'{source}_{target}_connector'] = {
+            connections[f'{source}_{target}_connector'] = {
                 'source_deltas': (f'{source}_deltas',),
                 'target_state': (f'{target}_species',),
             }
 
+        print({**models, **connections})
         return {**models, **connections}
 
     def add_model(self, name = None, bioscrape_process = None, bioscrape_parameters = None):
@@ -147,7 +159,17 @@ class BioscrapeConnector(Generator):
             raise KeyError(f"source {source} is not the name of a model.")
         if source not in self.models:
             raise KeyError(f"source {target} is not the name of a model.")
-        raise NotImplementedError("TODO")
+        
+        source_species = self.models[source].get_species_names()
+        target_species = self.models[target].get_species_names()
+
+        if connector_config is None:
+            connector_config = {
+                'source_keys': source_species,
+                'target_keys': target_species,
+                'map': one_way_map}
+        
+        self.connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)
 
     def add_mappings(self, config=None, model=None, species=None, rates=None):
         if config is None:
@@ -171,8 +193,6 @@ class BioscrapeConnector(Generator):
     def insert_topology(self, model_path, port_key, mapping):
         self.topology[model_path][port_key] = insert_topology(
             self.topology[model_path][port_key], mapping)
-
-
 
 def main():
     '''Simulate the composite and plot results.'''
@@ -209,7 +229,7 @@ def main():
 
 
     # configuration
-    time_step = 100
+    time_step = 1
     models = {
         '1': {
             'time_step': time_step,
@@ -242,9 +262,9 @@ def main():
     ## Run a simulation
     # initial state
     initial_state = composite.initial_state()
-    initial_state['1_species']['dna_G'] = .2
-    initial_state['1_species']['rna_T'] = 10
-    initial_state['3_species']['rna_T'] = 10
+    initial_state['1_species']['dna_G'] = 1.0
+    initial_state['1_species']['rna_T'] = 0
+    initial_state['3_species']['rna_T'] = 0
 
     # run a simulation
     sim_settings = {
