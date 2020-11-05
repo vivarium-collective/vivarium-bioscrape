@@ -81,7 +81,7 @@ class BioscrapeConnector(Generator):
         for connection in config['connections']:
             source = connection['source']
             target = connection['target']
-            map = connection['map']
+            one_way_map = connection['map']
 
             source_species = models[source].get_species_names()
             target_species = models[target].get_species_names()
@@ -89,7 +89,7 @@ class BioscrapeConnector(Generator):
             connector_config = {
                 'source_keys': source_species,
                 'target_keys': target_species,
-                'map': map}
+                'map': one_way_map}
             connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)
 
         self.models = models
@@ -116,21 +116,38 @@ class BioscrapeConnector(Generator):
         for connection in config['connections']:
             source = connection['source']
             target = connection['target']
-            connections[f'{source}_{target}_connector'] = {
+            self.connections[f'{source}_{target}_connector'] = {
                 'source_deltas': (f'{source}_deltas',),
                 'target_state': (f'{target}_species',),
             }
 
         return {**models, **connections}
 
-    def add_model(self):
-        # TODO -- to pass models in by name
-        # TODO add to self.models
-        pass
+    def add_model(self, name = None, bioscrape_process = None, bioscrape_parameters = None):
+        if name is None:
+            name = str(len(self.models))
 
-    def add_connection(self):
-        # TODO add to self.connections
-        pass
+        if bioscrape_process is not None and bioscrape_parameters is not None:
+            raise ValueError("Recieved both a bioscrape_process and bioscrape_parameters! Please use one or the other.")
+        elif bioscrape_process is not None:
+            if isinstance(bioscrape_process, Bioscrape):
+                self.models[name] =  bioscrape_process
+            else:
+                raise TypeError("bioscrape_process must be a Process of type Bioscrape.")
+        elif bioscrape_parameters is not None:
+            if isinstance(bioscrape_parameters, dict):
+                self.models[name] = Bioscrape(bioscrape_parameters)
+            else:
+                raise TypeError("bioscrape_parameters must be a dictionary.")
+        else:
+            raise ValueError("Recieved neither bioscrape_process nor bioscrape_parameters keywords. Please use one or the other (not both).")
+
+    def add_connection(self, source, target, one_way_map, connector_config = None):
+        if source not in self.models:
+            raise KeyError(f"source {source} is not the name of a model.")
+        if source not in self.models:
+            raise KeyError(f"source {target} is not the name of a model.")
+        raise NotImplementedError("TODO")
 
     def add_mappings(self, config=None, model=None, species=None, rates=None):
         if config is None:
@@ -174,13 +191,9 @@ def main():
     projection_1_3 = np.outer(
         model1_vector/np.sum(model1_vector),
         model3_vector/np.sum(model3_vector))
-    # projection_3_1 = np.outer(
-    #     model3_vector/np.sum(model3_vector),
-    #     model1_vector/np.sum(model1_vector))
-    # TODO (William) HW -- is this needed?
-    model3_vector2 = np.array(['rna' in key for key in model3_keys])
+
     projection_3_1 = np.outer(
-        model3_vector2/np.sum(model3_vector2),
+        model3_vector/np.sum(model3_vector),
         model1_vector/np.sum(model1_vector))
 
     # define map function
@@ -196,7 +209,7 @@ def main():
 
 
     # configuration
-    time_step = 10
+    time_step = 100
     models = {
         '1': {
             'time_step': time_step,
@@ -229,12 +242,13 @@ def main():
     ## Run a simulation
     # initial state
     initial_state = composite.initial_state()
-    initial_state['1_species']['dna_G'] = 1
+    initial_state['1_species']['dna_G'] = .2
     initial_state['1_species']['rna_T'] = 10
+    initial_state['3_species']['rna_T'] = 10
 
     # run a simulation
     sim_settings = {
-        'total_time': 1000,
+        'total_time': 500,
         'initial_state': initial_state}
     output = simulate_compartment_in_experiment(composite, sim_settings)
 
