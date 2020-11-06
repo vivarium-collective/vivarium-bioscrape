@@ -91,7 +91,10 @@ class Bioscrape(Process):
             species: array[index]
             for species, index in mapping.items()}
 
-    def initial_state(self):
+    def initial_state(self, config=None):
+        if config is None:
+            config = {}
+        self.model.set_species(config)
         state = self.model.get_species_array()
         return {
             'species': self.get_state(state)}

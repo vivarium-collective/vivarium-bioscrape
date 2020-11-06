@@ -14,13 +14,15 @@ from vivarium_bioscrape.library.schema import array_from, array_to
 class OneWayMap(Deriver):
     name = 'one_way_map'
     defaults = {
+        'source': '',
+        'target': '',
         'source_keys': [],
         'target_keys': [],
-        'map': lambda states: {}}
+        'map_function': lambda states: {}}
 
     def __init__(self, parameters=None):
         super(OneWayMap, self).__init__(parameters)
-        self.map = self.parameters['map']
+        self.map_function = self.parameters['map_function']
 
     def initial_state(self):
         return {}
@@ -37,7 +39,7 @@ class OneWayMap(Deriver):
                 } for species_id in self.parameters['target_keys']}}
 
     def next_update(self, timestep, states):
-        output = self.map(states)
+        output = self.map_function(states)
         return {
             'target_state': output,
         }
@@ -56,13 +58,13 @@ def test_one_way_map():
     projection = np.outer(input_vector/np.sum(input_vector), output_vector/np.sum(output_vector))
 
     # define map function
-    def map(states):
+    def map_function(states):
         input_array = array_from(states['source_deltas'])
         output_array = np.dot(input_array, projection)
         return array_to(output_keys, output_array)
 
     one_way = OneWayMap({
-        'map': map,
+        'map_function': map_function,
         'source_keys': input_keys,
         'target_keys': output_keys})
 

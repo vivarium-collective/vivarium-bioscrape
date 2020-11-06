@@ -21,7 +21,6 @@ from vivarium.plots.simulation_output import plot_simulation_output
 from vivarium.library.dict_utils import deep_merge
 
 # import processes
-from vivarium_bioscrape.composites.composite_general import insert_topology
 from vivarium_bioscrape.processes.bioscrape import Bioscrape, get_model_species_ids
 from vivarium_bioscrape.processes.one_way_map import OneWayMap
 from vivarium_bioscrape.library.schema import array_from, array_to
@@ -52,23 +51,41 @@ class BioscrapeConnector(Generator):
         self.topology = self.initial_topology(self.config)
 
     def initial_state(self, config=None):
-        # TODO -- find and resolve conflicts
-        network = self.generate()
-        processes = network['processes']
+        """
+        TODO -- automated resolution of conflicts
+        """
+        if config is None:
+            config = {}
+        self.generate()
 
-        # make initial state by merging initial states of processes
+        # set model values to config
+        for name, species_dict in config.items():
+            self.models[name].initial_state(species_dict)
+
         initial_state = {}
-        for name, process in self.models.items():
-            initial = process.initial_state()
-            initial_with_store = {
-                f'{name}_{store}': values
-                for store, values in initial.items()}
-            initial_state = deep_merge(initial_state, initial_with_store)
+        for name, node in self.connections.items():
+            source = node.parameters['source']
+            target = node.parameters['target']
+            map_function = node.map_function
+            source_state = self.models[source].initial_state()
+            target_state = self.models[target].initial_state()
 
-        # TODO -- after going through map, values need to be the same on either side
-        # TODO -- throw an exception, make them fix it
-        # for name, process in self.connections.items():
-        #     config = process.parameters
+            # Assume that source is going from 0 to the source process' initial state
+            modified_source_state = {
+                'source_deltas': source_state['species'],
+                'target_state': target_state['species']}
+            target_deltas = map_function(modified_source_state)
+
+            for species, value in target_deltas.items():
+                target_value = target_state['species'][species]
+                if value != 0.0 and target_value != value:
+                    raise ValueError(
+                        f"initial condition ['{target}_species']['{species}']={target_value} "
+                        f"does not match mapping from model {source} to model {target}")
+
+            # set initial state according source and target species
+            initial_state[f'{source}_species'] = source_state['species']
+            initial_state[f'{target}_species'] = target_state['species']
 
         return initial_state
 
@@ -80,32 +97,8 @@ class BioscrapeConnector(Generator):
         for connection in config['connections']:
             source = connection['source']
             target = connection['target']
-            one_way_map = connection['map']
-            self.add_connection(source, target, one_way_map)
-
-        #models = {
-        #    name: Bioscrape(parameters)
-        #    for name, parameters in config['models'].items()}
-
-        # make connection processes
-        """connections = {}
-        for connection in config['connections']:
-            source = connection['source']
-            target = connection['target']
-            one_way_map = connection['map']
-
-            source_species = models[source].get_species_names()
-            target_species = models[target].get_species_names()
-
-            connector_config = {
-                'source_keys': source_species,
-                'target_keys': target_species,
-                'map': one_way_map}
-            connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)"""
-
-
-        #self.models = models
-        #self.connections = connections
+            map_function = connection['map_function']
+            self.add_connection(source, target, map_function)
 
         # combine model and connection processes
         return {**self.models, **self.connections}
@@ -154,10 +147,10 @@ class BioscrapeConnector(Generator):
         else:
             raise ValueError("Recieved neither bioscrape_process nor bioscrape_parameters keywords. Please use one or the other (not both).")
 
-    def add_connection(self, source, target, one_way_map, connector_config = None):
+    def add_connection(self, source, target, map_function, connector_config = None):
         if source not in self.models:
             raise KeyError(f"source {source} is not the name of a model.")
-        if source not in self.models:
+        if target not in self.models:
             raise KeyError(f"source {target} is not the name of a model.")
         
         source_species = self.models[source].get_species_names()
@@ -165,34 +158,14 @@ class BioscrapeConnector(Generator):
 
         if connector_config is None:
             connector_config = {
+                'source': source,
+                'target': target,
                 'source_keys': source_species,
                 'target_keys': target_species,
-                'map': one_way_map}
+                'map_function': map_function}
         
         self.connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)
 
-    def add_mappings(self, config=None, model=None, species=None, rates=None):
-        if config is None:
-            config = {}
-
-        if model not in config:
-            if species:
-                config[model] = {
-                    'species': species}
-            if rates:
-                config[model] = {
-                    'rates': rates}
-        elif model:
-            raise ValueError('config and model keywords are conflicting for {}'.format(model))
-
-        for model_path, port in config.items():
-            for port_key, mappings in port.items():
-                for mapping in mappings:
-                    self.insert_topology(model_path, port_key, mapping)
-
-    def insert_topology(self, model_path, port_key, mapping):
-        self.topology[model_path][port_key] = insert_topology(
-            self.topology[model_path][port_key], mapping)
 
 def main():
     '''Simulate the composite and plot results.'''
@@ -211,7 +184,6 @@ def main():
     projection_1_3 = np.outer(
         model1_vector/np.sum(model1_vector),
         model3_vector/np.sum(model3_vector))
-
     projection_3_1 = np.outer(
         model3_vector/np.sum(model3_vector),
         model1_vector/np.sum(model1_vector))
@@ -239,8 +211,8 @@ def main():
             'sbml_file': 'Notebooks/model3.xml'},
     }
     connections = [
-        {'source': '1', 'target': '3', 'map': map_1_3},
-        {'source': '3', 'target': '1', 'map': map_3_1}
+        {'source': '1', 'target': '3', 'map_function': map_1_3},
+        {'source': '3', 'target': '1', 'map_function': map_3_1}
     ]
 
     # make the composite
@@ -249,22 +221,14 @@ def main():
         connections=connections,
     )
 
-    # get processes and topology, print
-    network = composite.generate()
-    processes = network['processes']
-    topology = network['topology']
-
-    print('PROCESSES:')
-    pp(processes)
-    print('TOPOLOGY:')
-    pp(topology)
-
     ## Run a simulation
     # initial state
-    initial_state = composite.initial_state()
-    initial_state['1_species']['dna_G'] = 1.0
-    initial_state['1_species']['rna_T'] = 0
-    initial_state['3_species']['rna_T'] = 0
+    config = {
+        '1': {
+            'rna_T': 10.0
+        }
+    }
+    initial_state = composite.initial_state(config)
 
     # run a simulation
     sim_settings = {
