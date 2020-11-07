@@ -2,6 +2,10 @@
 ===================
 Bioscrape Composite
 ====================
+
+.. note::
+    * This is a first attempt at a bioscrape composite.
+    A more complete composite can be found in bioscrape_connector.
 """
 import os
 
@@ -19,7 +23,6 @@ from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 
 NAME = 'bioscrape_composer'
-
 
 class BioscrapeComposer(Generator):
 
@@ -53,7 +56,6 @@ class BioscrapeComposer(Generator):
 
     def generate_processes(self, config):
         return {
-            # TODO: pull out name from path for key
             path: Bioscrape({'sbml_file': path})
             for path in self.config['model_paths']}
 

@@ -9,11 +9,8 @@ import numpy as np
 
 from vivarium.core.process import Deriver
 from vivarium.core.experiment import pp
-from vivarium_bioscrape.processes.bioscrape import (
-    get_model_species,
-    get_model_species_ids,
-)
-from vivarium_bioscrape.library.schema import array_to
+from vivarium.library.schema import array_from, array_to
+from vivarium_bioscrape.processes.bioscrape import get_model_species
 
 
 class LinearMap(Deriver):

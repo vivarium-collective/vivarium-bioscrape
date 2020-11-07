@@ -4,8 +4,6 @@ Execute by running: ``python -m  bioscrape.processes.bioscrape.py``
 TODO: Replace the bioscrape code to implement your own process.
 '''
 
-from __future__ import absolute_import, division, print_function
-
 import os
 import numpy as np
 

@@ -11,6 +11,7 @@ import os
 import numpy as np
 
 # vivarium core imports
+from vivarium.library.schema import array_from, array_to
 from vivarium.core.experiment import pp
 from vivarium.core.process import Generator
 from vivarium.core.composition import (
@@ -23,7 +24,7 @@ from vivarium.library.dict_utils import deep_merge
 # import processes
 from vivarium_bioscrape.processes.bioscrape import Bioscrape, get_model_species_ids
 from vivarium_bioscrape.processes.one_way_map import OneWayMap
-from vivarium_bioscrape.library.schema import array_from, array_to
+
 
 NAME = 'bioscrape_connector'
 
