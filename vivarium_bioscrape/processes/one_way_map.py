@@ -9,6 +9,7 @@ from vivarium.core.process import Deriver
 from vivarium.core.experiment import pp
 from vivarium.library.schema import array_from, array_to
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
+from vivarium_bioscrape.library.mappings import *
 
 
 class OneWayMap(Deriver):
@@ -43,8 +44,6 @@ class OneWayMap(Deriver):
         return {
             'target_state': output,
         }
-
-
 
 def test_one_way_map():
     bioscrape_process_input = Bioscrape(parameters = {
@@ -83,6 +82,22 @@ def test_one_way_map():
     transform = one_way.next_update(0, state)
 
 
+def test_one_to_one():
+    #Each species is converted into a single other species
+    bsp1 = Bioscrape(parameters = {
+        'sbml_file':'Notebooks/model1.xml'
+        })
+    bsp2 = Bioscrape(parameters = {
+        'sbml_file':'Notebooks/model4.xml'
+        })
+
+    map_func = one_to_one_map(bsp1, bsp2, ['rna_T', 'protein_X'], ['rna_RNA', 'protein_Protein'])
+
+    assert map_func({'source_deltas':{'rnaT':1.0}})[]
+
+
+
+
 
 def test_one_to_many():
     #One species is converted into many species, evenly.
@@ -111,3 +126,4 @@ def test_positive_negative():
 
 if __name__ == '__main__':
     test_one_way_map()
+    test_one_to_one()

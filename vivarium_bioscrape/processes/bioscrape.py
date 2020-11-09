@@ -15,7 +15,7 @@ from vivarium.core.composition import (
 from vivarium.plots.simulation_output import plot_simulation_output
 
 from bioscrape.types import Model
-from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface
+from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface, VolumeSSASimulator
 
 NAME = 'bioscrape'
 
@@ -43,6 +43,7 @@ class Bioscrape(Process):
         # get the parameters out of initial_parameters if available, or use defaults
         self.sbml_file = self.parameters['sbml_file']
         self.internal_dt = self.parameters['internal_dt']
+        self.stochastic = self.parameters['stochastic']
 
         # load the sbml file to create the model
         self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
@@ -50,8 +51,14 @@ class Bioscrape(Process):
         # create the interface
         self.interface = ModelCSimInterface(self.model)
 
-        # create a Simulator
-        self.simulator = DeterministicSimulator()
+        #Stochastic
+        if self.stochastic:
+            self.simulator = VolumeSSASimulator()
+        #Not Stochastic
+        elif not self.stochastic:
+            self.interface.py_prep_deterministic_simulation()
+            # create a Simulator
+            self.simulator = DeterministicSimulator()
 
     def get_species_names(self):
         model_species = self.model.get_species_dictionary()
@@ -100,10 +107,15 @@ class Bioscrape(Process):
                     '_emit': True}
                 for species in self.model.get_species()},
             'rates': {},
+            'globals': {
+                'volume': {
+                    '_default':1.0,
+                    '_updater': 'accumulate',
+                    '_emit':True }
+            }
         }
 
     def next_update(self, timestep, states):
-        self.interface.py_prep_deterministic_simulation()
         self.model.set_species(states['species'])
 
         timepoints = np.arange(0, timestep, self.internal_dt)
@@ -112,9 +124,18 @@ class Bioscrape(Process):
         result_state = self.get_state(result)
         delta = get_delta(states['species'], result_state)
 
+        #If the simulation is a volume simulation, return the change in volume
+        if getattr(output, py_get_volume, None) is not None:
+            Vi = output.py_get_volume()[0]
+            Vf = output.py_get_volume()[-1]
+            deltaV = Vf-Vi
+        else:
+            deltaV = 0
+
         return {
             'species': delta,
-            'delta_species': delta}
+            'delta_species': delta,
+            'globals': {'volume': deltaV}}
 
     def get_model(self):
         return self.model
