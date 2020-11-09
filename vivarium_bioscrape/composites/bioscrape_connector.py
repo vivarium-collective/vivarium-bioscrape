@@ -22,7 +22,7 @@ from vivarium.plots.simulation_output import plot_simulation_output
 from vivarium.library.dict_utils import deep_merge
 
 # import processes
-from vivarium_bioscrape.processes.bioscrape import Bioscrape, get_model_species_ids
+from vivarium_bioscrape.processes.bioscrape import Bioscrape
 from vivarium_bioscrape.processes.one_way_map import OneWayMap
 
 
@@ -176,8 +176,15 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    model1_keys = get_model_species_ids('Notebooks/model1.xml')
-    model3_keys = get_model_species_ids('Notebooks/model3.xml')
+    bioscrape_process_1 = Bioscrape(parameters = {
+        'sbml_file':'Notebooks/model1.xml'
+        })
+    bioscrape_process_3 = Bioscrape(parameters = {
+        'sbml_file':'Notebooks/model3.xml'
+        })
+
+    model1_keys = bioscrape_process_1.get_model_species_ids()
+    model3_keys = bioscrape_process_3.get_model_species_ids()
 
     # define the projection
     model1_vector = np.array(['rna_T' == key for key in model1_keys])

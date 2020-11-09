@@ -8,7 +8,7 @@ import numpy as np
 from vivarium.core.process import Deriver
 from vivarium.core.experiment import pp
 from vivarium.library.schema import array_from, array_to
-from vivarium_bioscrape.processes.bioscrape import get_model_species
+from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 
 class OneWayMap(Deriver):
@@ -47,8 +47,15 @@ class OneWayMap(Deriver):
 
 
 def test_one_way_map():
-    input_species = get_model_species('Notebooks/model3.xml')
-    output_species = get_model_species('Notebooks/model2.xml')
+    bioscrape_process_input = Bioscrape(parameters = {
+        'sbml_file':'Notebooks/model3.xml'
+        })
+    bioscrape_process_output = Bioscrape(parameters = {
+        'sbml_file':'Notebooks/model2.xml'
+        })
+
+    input_species = bioscrape_process_input.get_model_species() #get_model_species('Notebooks/model3.xml')
+    output_species = bioscrape_process_output.get_model_species() #get_model_species('Notebooks/model2.xml')
     input_keys = list(input_species.keys())
     output_keys = list(output_species.keys())
 
@@ -74,10 +81,6 @@ def test_one_way_map():
         'target_state': {key: 0.0 for key in output_species.keys()}}
 
     transform = one_way.next_update(0, state)
-    print('transform:')
-    pp(transform)
-
-    import ipdb; ipdb.set_trace()
 
 
 

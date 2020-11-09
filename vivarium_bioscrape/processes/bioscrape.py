@@ -17,32 +17,7 @@ from vivarium.plots.simulation_output import plot_simulation_output
 from bioscrape.types import Model
 from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface
 
-
-# TODO -- remove all of these, use the Process to get species, ids
-def get_model(file):
-    params = {'sbml_file': file}
-    process = Bioscrape(params)
-    return process.model
-
-def get_model_species(path):
-    model = get_model(path)
-    return model.get_species_dictionary()
-
-def get_model_species_ids(path):
-    model_species = get_model_species(path)
-    return list(model_species.keys())
-
-
-def get_delta(before, after):
-    # assuming before and after have the same keys
-    return {
-        key: after[key] - before_value
-        for key, before_value in before.items()}
-
-
 NAME = 'bioscrape'
-
-
 
 class Bioscrape(Process):
     '''
@@ -140,6 +115,22 @@ class Bioscrape(Process):
         return {
             'species': delta,
             'delta_species': delta}
+
+    def get_model(self):
+        return self.model
+
+    def get_model_species(self):
+        return self.model.get_species_dictionary()
+
+    def get_model_species_ids(self):
+        return list(self.model.get_species_dictionary().keys())
+
+
+def get_delta(before, after):
+    # assuming before and after have the same keys
+    return {
+        key: after[key] - before_value
+        for key, before_value in before.items()}
 
 
 def run_bioscrape_process():
