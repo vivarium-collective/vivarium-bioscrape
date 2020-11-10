@@ -72,7 +72,7 @@ def one_to_many_map(bsp1, bsp2, species_map, proportional = True):
             normalizer = 1/np.sum(projection, 1)
             normalized_proj = normalizer[:, np.newaxis]*projection
         else:
-            
+            #Normalize the projection matrix based upon the total concentrations of each target species
             output_array = array_from(states['target_state'])
             normalized_proj = projection*output_array
             normalizer = np.sum(normalized_proj, 1)[:, np.newaxis]*projection
@@ -86,7 +86,6 @@ def one_to_many_map(bsp1, bsp2, species_map, proportional = True):
                     normalizer[i, :] = sum(projection[i, :])
                     normalized_proj[i, :] = projection[i, :]/normalizer[i, :]
 
-        print(normalized_proj)
         output_delta_array = np.dot(source_delta_array, normalized_proj)
         return array_to(all_species2, output_delta_array)
 
@@ -126,3 +125,25 @@ def many_to_one_map(bsp1, bsp2, species_map):
 
     return map_function
 
+
+def stochiometric_map(parent_func, stochiometric_dictionary):
+    #This converts any map function into a map that obeys stochiometric laws
+    # parent_func is any parent mapping
+    # stochiometric_dictionary is a dictionary: {species : {coupled species : stochiometric coefficient} }
+    # Any species may have one or more coupled species (which always change along with it) 
+    # using arbitrary stochiometric coefficients
+    def map_function(states):
+        deltas_dict = parent_func(states)
+        new_deltas = dict(deltas_dict)
+        for s in deltas_dict:
+            if s in stochiometric_dictionary:
+                for s2 in stochiometric_dictionary[s]:
+                    coef = stochiometric_dictionary[s][s2]
+                    if s2 in deltas_dict:
+                        new_deltas[s2] += deltas_dict[s]*coef
+                    else:
+                        new_deltas[s2] = deltas_dict[s]*coef
+
+        return new_deltas
+
+    return map_function

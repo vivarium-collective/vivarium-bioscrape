@@ -51,6 +51,7 @@ class BioscrapeConnector(Generator):
 
         self.models = {}
         self.connections = {}
+        self.connection_counts = {} #Stores the number of connections between pairs of processes, for naming purposes
 
         super(BioscrapeConnector, self).__init__(config)
         self.topology = self.initial_topology(self.config)
@@ -117,7 +118,8 @@ class BioscrapeConnector(Generator):
             name: {
                 'species': (f'{name}_species',),
                 'delta_species': (f'{name}_deltas',),
-                'rates': (f'{name}_rates',)}
+                'rates': (f'{name}_rates',),
+                'globals':(f'volume',),}
             for name, path in config['models'].items()}
 
         # make connections between model stores
@@ -125,9 +127,14 @@ class BioscrapeConnector(Generator):
         for connection in config['connections']:
             source = connection['source']
             target = connection['target']
-            connections[f'{source}_{target}_connector'] = {
+
+            connections[f'{source}_{target}_connector_{count}'] = {
                 'source_deltas': (f'{source}_deltas',),
                 'target_state': (f'{target}_species',),
+                'globals' : {
+                    f'{source}_volume':(f'{source}', 'globals','volume',),
+                    f'{target}_volume':(f'{target}', 'globals','volume',),
+                }
             }
 
         return {**models, **connections}
@@ -178,14 +185,19 @@ class BioscrapeConnector(Generator):
                 'source_keys': source_species,
                 'target_keys': target_species,
                 'map_function': map_function}
-        
-        if f'{source}_{target}_connector' in self.connections:
-            raise ValueError(f'{source}_{target}_connector already exists!')
 
-        self.connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)
+        if (source, target) in self.connection_counts:
+            count = self.connection_counts[(source, target)]
+            count += 1
+            self.connection_counts[(source, target)] = count
+        else:
+            count = 1
+            self.connection_counts[(source, target)] = count
+
+        self.connections[f'{source}_{target}_connector_{count}'] = OneWayMap(connector_config)
 
         #Add process to the topology
-        self.topology[f'{source}_{target}_connector'] = {
+        self.topology[f'{source}_{target}_connector_{count}'] = {
             'source_deltas': (f'{source}_deltas',),
             'target_state': (f'{target}_species',),
         }

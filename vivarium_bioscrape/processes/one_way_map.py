@@ -29,6 +29,8 @@ class OneWayMap(Deriver):
         return {}
 
     def ports_schema(self):
+        source = self.parameters['source']
+        target = self.parameters['target']
         return {
             'source_deltas': {
                 species_id: {
@@ -37,7 +39,15 @@ class OneWayMap(Deriver):
             'target_state': {
                 species_id: {
                     '_default': 0.0,
-                } for species_id in self.parameters['target_keys']}}
+                } for species_id in self.parameters['target_keys']},
+            'globals':{
+                f'{source}_volume': {
+                    '_default':1.0
+                },
+                f'{target}_volume' : {
+                    '_default':1.0
+                }
+            }}
 
     def next_update(self, timestep, states):
         output = self.map_function(states)
@@ -188,10 +198,56 @@ def test_many_to_one():
     assert r['rna_RNA'] == 3
     assert r['protein_Protein'] == .5
 
-def test_one_to_many_stochiometrically_compatable():
-    #One species is converted to many species in a way that is 
-    #compatable with the stochiometric matrix of the manys species.
-    pass
+def test_stochiometrically_compatable():
+
+    #Create Bioscrape Processes
+    #Tx Tl Model with multiple ribsome occupancy
+    bsp1 = Bioscrape(parameters = {
+        'sbml_file':'Notebooks/model2.xml'
+        })
+
+    #RNA degredation Model
+    bsp2 = Bioscrape(parameters = {
+        'sbml_file':'Notebooks/model3.xml'
+        })
+
+    #Create the map_function using many_to_one_map
+    rna_species_1 = [s for s in bsp1.get_model_species_ids() if "rna_T" in s]
+    map_func_12 = many_to_one_map(bsp1, bsp2, {"rna_T":rna_species_1})
+
+    #Create the reverse map_function with stochiometric constraints
+
+    #First create a one_to_many parent map function
+    parent_map_func_21 = one_to_many_map(bsp2, bsp1,  {"rna_T":rna_species_1})
+
+    #Then create the stochiometric_map
+
+    #Helper function to count the number of ribosomes in a complex
+    def ribo_count(s):
+        count = 0
+        if "x_rna" in s:
+            ind = s.index('x_rna')
+            count = int(s[ind-1])
+        elif "protein_Ribo" in s:
+             count = 1
+        else:
+            count = 0
+        return count
+
+    #Ribosomes are created when species with RNA are degraded
+    stoch_dict = {s:{'protein_Ribo': -ribo_count(s)} for s in rna_species_1}
+
+    map_func_21 = stochiometric_map(parent_map_func_21, stoch_dict)
+
+    state = {"target_state":{bsp1.get_model_species_ids()[i]:10 for i in range(len(bsp1.get_model_species_ids()))}, "source_deltas":{"rna_T":-1, 'protein_RNAase':0, "complex_protein_RNAase_rna_T_":0}}
+
+    r = map_func_21(state)
+
+    #Total amount of RNA degraded should be -1
+    assert np.allclose(sum([r[s] for s in rna_species_1]), -1)
+
+    #Total change in ribosome concentration should be 0
+    assert np.allclose(sum([r[s]*ribo_count(s) for s in bsp1.get_model_species_ids()]), 0)
 
 
 if __name__ == '__main__':
@@ -199,3 +255,4 @@ if __name__ == '__main__':
     test_one_to_one()
     test_one_to_many()
     test_many_to_one()
+    test_stochiometrically_compatable()
