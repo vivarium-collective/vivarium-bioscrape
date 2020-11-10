@@ -108,9 +108,9 @@ class Bioscrape(Process):
             'rates': {},
             'globals': {
                 'volume': {
-                    '_default':1.0,
+                    '_default': 1.0,
                     '_updater': 'accumulate',
-                    '_emit':True }
+                    '_emit': True}
             }
         }
 

@@ -29,8 +29,6 @@ class OneWayMap(Deriver):
         return {}
 
     def ports_schema(self):
-        source = self.parameters['source']
-        target = self.parameters['target']
         return {
             'source_deltas': {
                 species_id: {
@@ -40,14 +38,11 @@ class OneWayMap(Deriver):
                 species_id: {
                     '_default': 0.0,
                 } for species_id in self.parameters['target_keys']},
-            'globals':{
-                f'{source}_volume': {
-                    '_default':1.0
-                },
-                f'{target}_volume' : {
-                    '_default':1.0
-                }
-            }}
+            'globals': {
+                f'source_volume': {
+                    '_default': 1.0},
+                f'target_volume': {
+                    '_default': 1.0}}}
 
     def next_update(self, timestep, states):
         output = self.map_function(states)
