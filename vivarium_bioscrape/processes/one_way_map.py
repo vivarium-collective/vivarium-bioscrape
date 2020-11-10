@@ -239,7 +239,7 @@ def test_stochiometrically_compatable():
 
     map_func_21 = stochiometric_map(parent_map_func_21, stoch_dict)
 
-    state = {"target_state":{bsp1.get_model_species_ids()[i]:10 for i in range(len(bsp1.get_model_species_ids()))}, "source_deltas":{"rna_T":-1, 'protein_RNAase':0, "complex_protein_RNAase_rna_T_":0}}
+    state = {"target_state":{bsp1.get_model_species_ids()[i]:i for i in range(len(bsp1.get_model_species_ids()))}, "source_deltas":{"rna_T":-1, 'protein_RNAase':0, "complex_protein_RNAase_rna_T_":0}}
 
     r = map_func_21(state)
 
