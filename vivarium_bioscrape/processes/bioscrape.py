@@ -13,7 +13,6 @@ from vivarium.core.composition import (
     PROCESS_OUT_DIR,
 )
 from vivarium.plots.simulation_output import plot_simulation_output
-
 from bioscrape.types import Model
 from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface, VolumeSSASimulator
 
@@ -125,7 +124,7 @@ class Bioscrape(Process):
         delta = get_delta(states['species'], result_state)
 
         #If the simulation is a volume simulation, return the change in volume
-        if getattr(output, py_get_volume, None) is not None:
+        if getattr(output, "py_get_volume", None) is not None:
             Vi = output.py_get_volume()[0]
             Vf = output.py_get_volume()[-1]
             deltaV = Vf-Vi

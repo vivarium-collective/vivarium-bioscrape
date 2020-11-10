@@ -14,6 +14,7 @@ setup(
         'vivarium_bioscrape.processes',
         'vivarium_bioscrape.composites',
         'vivarium_bioscrape.experiments',
+        'vivarium_bioscrape.library'
     ],
     author='',  # TODO: Put your name here.
     author_email='',  # TODO: Put your email here.

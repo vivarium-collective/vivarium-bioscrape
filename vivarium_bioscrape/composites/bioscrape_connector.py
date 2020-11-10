@@ -39,6 +39,10 @@ class BioscrapeConnector(Generator):
     def __init__(self, config=None, models=None, connections=None):
         if config is None:
             config = {}
+        if models is None:
+            models = {}
+        if connections is None:
+            connections = {}
 
         if 'models' not in config:
             config['models'] = models
@@ -126,12 +130,14 @@ class BioscrapeConnector(Generator):
                 'target_state': (f'{target}_species',),
             }
 
-        print({**models, **connections})
         return {**models, **connections}
 
     def add_model(self, name = None, bioscrape_process = None, bioscrape_parameters = None):
         if name is None:
             name = str(len(self.models))
+
+        if name in self.models:
+            raise ValueError(f"A model named {name} already exists!")
 
         if bioscrape_process is not None and bioscrape_parameters is not None:
             raise ValueError("Recieved both a bioscrape_process and bioscrape_parameters! Please use one or the other.")
@@ -147,6 +153,14 @@ class BioscrapeConnector(Generator):
                 raise TypeError("bioscrape_parameters must be a dictionary.")
         else:
             raise ValueError("Recieved neither bioscrape_process nor bioscrape_parameters keywords. Please use one or the other (not both).")
+
+        #Add process to the topology
+
+        self.topology[name] = {
+                'species': (f'{name}_species',),
+                'delta_species': (f'{name}_deltas',),
+                'rates': (f'{name}_rates',)}
+
 
     def add_connection(self, source, target, map_function, connector_config = None):
         if source not in self.models:
@@ -165,7 +179,16 @@ class BioscrapeConnector(Generator):
                 'target_keys': target_species,
                 'map_function': map_function}
         
+        if f'{source}_{target}_connector' in self.connections:
+            raise ValueError(f'{source}_{target}_connector already exists!')
+
         self.connections[f'{source}_{target}_connector'] = OneWayMap(connector_config)
+
+        #Add process to the topology
+        self.topology[f'{source}_{target}_connector'] = {
+            'source_deltas': (f'{source}_deltas',),
+            'target_state': (f'{target}_species',),
+        }
 
 
 def main():
