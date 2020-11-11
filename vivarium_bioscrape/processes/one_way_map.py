@@ -49,6 +49,12 @@ class OneWayMap(Deriver):
 
     def next_update(self, timestep, states):
         output = self.map_function(states)
+
+        #Ensures values never go below 0
+        for s in output:
+            if states["target_state"][s] + output[s] < 0:
+                output[s] = -states["target_state"][s]
+
         return {
             'target_state': output,
         }
