@@ -13,7 +13,7 @@ from vivarium.core.composition import (
     PROCESS_OUT_DIR,
 )
 from vivarium.plots.simulation_output import plot_simulation_output
-from bioscrape.types import Model
+from bioscrape.types import Model, Volume
 from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface, VolumeSSASimulator
 
 NAME = 'bioscrape'
@@ -31,6 +31,7 @@ class Bioscrape(Process):
         'sbml_file': 'model.xml',
         'internal_dt': 0.01,
         'stochastic': False,
+        'initial_volume':1.0
     }
 
     def __init__(self, parameters=None):
@@ -43,6 +44,8 @@ class Bioscrape(Process):
         self.sbml_file = self.parameters['sbml_file']
         self.internal_dt = self.parameters['internal_dt']
         self.stochastic = self.parameters['stochastic']
+        self.volume = Volume() #Create an internal bioscrape Volume
+        self.volume.py_set_volume(self.parameters['initial_volume']) #Set the volume
 
         # load the sbml file to create the model
         self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
@@ -108,7 +111,7 @@ class Bioscrape(Process):
             'rates': {},
             'globals': {
                 'volume': {
-                    '_default':1.0,
+                    '_default':self.parameters['initial_volume'],
                     '_updater': 'accumulate',
                     '_emit':True }
             }
@@ -118,7 +121,12 @@ class Bioscrape(Process):
         self.model.set_species(states['species'])
 
         timepoints = np.arange(0, timestep, self.internal_dt)
-        output = self.simulator.py_simulate(self.interface, timepoints)
+
+        if self.stochastic:
+            output = self.simulator.py_volume_simulate(self.interface, self.volume, timepoints)
+        else:
+            output = self.simulator.py_simulate(self.interface, timepoints)
+
         result = output.py_get_result()[-1]
         result_state = self.get_state(result)
         delta = get_delta(states['species'], result_state)
@@ -144,6 +152,9 @@ class Bioscrape(Process):
 
     def get_model_species_ids(self):
         return list(self.model.get_species_dictionary().keys())
+
+    def get_volume(self):
+        return self.volume.py_get_volume()
 
 
 def get_delta(before, after):

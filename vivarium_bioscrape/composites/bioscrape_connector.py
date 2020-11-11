@@ -132,8 +132,8 @@ class BioscrapeConnector(Generator):
                 'source_deltas': (f'{source}_deltas',),
                 'target_state': (f'{target}_species',),
                 'globals' : {
-                    f'{source}_volume':(f'{source}', 'globals','volume',),
-                    f'{target}_volume':(f'{target}', 'globals','volume',),
+                    f'source_volume':(f'{source}', 'globals','volume',),
+                    f'target_volume':(f'{target}', 'globals','volume',),
                 }
             }
 
@@ -166,7 +166,8 @@ class BioscrapeConnector(Generator):
         self.topology[name] = {
                 'species': (f'{name}_species',),
                 'delta_species': (f'{name}_deltas',),
-                'rates': (f'{name}_rates',)}
+                'rates': (f'{name}_rates',),
+                'globals':(f'volume',),}
 
 
     def add_connection(self, source, target, map_function, connector_config = None):
@@ -200,6 +201,10 @@ class BioscrapeConnector(Generator):
         self.topology[f'{source}_{target}_connector_{count}'] = {
             'source_deltas': (f'{source}_deltas',),
             'target_state': (f'{target}_species',),
+            'globals' : {
+                    f'source_volume':(f'{source}', 'globals','volume',),
+                    f'target_volume':(f'{target}', 'globals','volume',),
+                }
         }
 
 

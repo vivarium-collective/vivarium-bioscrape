@@ -147,3 +147,54 @@ def stochiometric_map(parent_func, stochiometric_dictionary):
         return new_deltas
 
     return map_function
+
+def det_to_stoch_map(parent_func):
+    #This converts any parent_func to produce integer changes in the species counts
+    #using the volume of the underlying bioscrape processes. This allows for deterministic
+    #and stochastic processes to be run together. Note: rounding errors may occur.
+
+    def map_function(states):
+        deltas_dict = parent_func(states)
+        if 'global' in states and 'source_volume' in states['global']:
+            V_source = states['global']['source_volume']
+        else:
+            V_source = 1.0
+
+        for s in deltas_dict:
+            sign = np.sign(deltas_dict[s])
+            delta_int = np.floor(abs(deltas_dict[s]*V_source)) #Round down the change in number
+            res = np.abs(deltas_dict[s]*V_source) - delta_int #Residual count
+
+            #add/subtract an additional species with probability proportional to res.
+            delta = sign*(delta_int + (np.random.random() < res))
+
+            #Makes sure the count doesn't go below 0
+            if states["target_state"][s] + delta < 0:
+                delta = -states["target_state"][s]
+            
+            deltas_dict[s] = delta
+
+        return deltas_dict
+
+    return map_function
+
+def stoch_to_det_map(parent_func):
+    #This converts any parent_func that produces integer count changes into the species concentrations
+    #using the volume of the underlying bioscrape processes. This allows for deterministic
+    #and stochastic processes to be run together. 
+
+    def map_function(states):
+        deltas_dict = parent_func(states)
+        if 'global' in states and 'target_volume' in states['global']:
+            V_target = states['global']['target_volume']
+        else:
+            V_target = 1.0
+        
+        for s in deltas_dict:
+            deltas_dict[s] = deltas_dict[s]/V_target #convert a change in count to a concentration
+
+        return deltas_dict
+
+    return map_function
+
+

@@ -41,10 +41,10 @@ class OneWayMap(Deriver):
                     '_default': 0.0,
                 } for species_id in self.parameters['target_keys']},
             'globals':{
-                f'{source}_volume': {
+                f'source_volume': {
                     '_default':1.0
                 },
-                f'{target}_volume' : {
+                f'target_volume' : {
                     '_default':1.0
                 }
             }}
