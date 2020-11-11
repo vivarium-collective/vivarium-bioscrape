@@ -113,7 +113,7 @@ class Bioscrape(Process):
                 'volume': {
                     '_default':self.parameters['initial_volume'],
                     '_updater': 'accumulate',
-                    '_emit':True }
+                    '_emit': True}
             }
         }
 

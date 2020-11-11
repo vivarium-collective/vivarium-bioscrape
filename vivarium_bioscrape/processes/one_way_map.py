@@ -29,8 +29,6 @@ class OneWayMap(Deriver):
         return {}
 
     def ports_schema(self):
-        source = self.parameters['source']
-        target = self.parameters['target']
         return {
             'source_deltas': {
                 species_id: {

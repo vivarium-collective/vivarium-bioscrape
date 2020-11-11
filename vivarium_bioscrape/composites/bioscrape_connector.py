@@ -119,7 +119,7 @@ class BioscrapeConnector(Generator):
                 'species': (f'{name}_species',),
                 'delta_species': (f'{name}_deltas',),
                 'rates': (f'{name}_rates',),
-                'globals':(f'volume',),}
+                'globals': (f'{name}_globals',)}
             for name, path in config['models'].items()}
 
         # make connections between model stores
@@ -134,6 +134,7 @@ class BioscrapeConnector(Generator):
                 'globals' : {
                     f'source_volume':(f'{source}', 'globals','volume',),
                     f'target_volume':(f'{target}', 'globals','volume',),
+
                 }
             }
 
@@ -162,7 +163,6 @@ class BioscrapeConnector(Generator):
             raise ValueError("Recieved neither bioscrape_process nor bioscrape_parameters keywords. Please use one or the other (not both).")
 
         #Add process to the topology
-
         self.topology[name] = {
                 'species': (f'{name}_species',),
                 'delta_species': (f'{name}_deltas',),
@@ -201,10 +201,10 @@ class BioscrapeConnector(Generator):
         self.topology[f'{source}_{target}_connector_{count}'] = {
             'source_deltas': (f'{source}_deltas',),
             'target_state': (f'{target}_species',),
-            'globals' : {
-                    f'source_volume':(f'{source}', 'globals','volume',),
-                    f'target_volume':(f'{target}', 'globals','volume',),
-                }
+            'globals': {
+                'source_volume': (f'{source}_globals', 'volume'),
+                'target_volume': (f'{target}_globals', 'volume'),
+            }
         }
 
 
@@ -217,10 +217,10 @@ def main():
         os.makedirs(out_dir)
 
     bioscrape_process_1 = Bioscrape(parameters = {
-        'sbml_file':'Notebooks/model1.xml'
+        'sbml_file': 'Notebooks/model1.xml'
         })
     bioscrape_process_3 = Bioscrape(parameters = {
-        'sbml_file':'Notebooks/model3.xml'
+        'sbml_file': 'Notebooks/model3.xml'
         })
 
     model1_keys = bioscrape_process_1.get_model_species_ids()
