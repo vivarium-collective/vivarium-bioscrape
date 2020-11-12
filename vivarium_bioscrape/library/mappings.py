@@ -167,10 +167,6 @@ def det_to_stoch_map(parent_func):
 
             #add/subtract an additional species with probability proportional to res.
             delta = sign*(delta_int + (np.random.random() < res))
-
-            #Makes sure the count doesn't go below 0
-            if states["target_state"][s] + delta < 0:
-                delta = -states["target_state"][s]
             
             deltas_dict[s] = delta
 
