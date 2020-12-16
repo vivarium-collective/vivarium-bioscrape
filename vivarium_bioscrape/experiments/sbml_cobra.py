@@ -37,6 +37,8 @@ class FluxDeriver(Deriver):
     defaults = {'time_step': 1}
     def __init__(self, parameters=None):
         super(FluxDeriver, self).__init__(parameters)
+    def initial_state(self, config=None):
+        return {}
     def ports_schema(self):
         return {
             'deltas': {
@@ -148,30 +150,28 @@ class CRN_COBRA(Generator):
 
 
 # experiments
-def run_bioscrape():
+def run_bioscrape(
+        total_time=2500,
+        time_step=1,
+):
     # initialize Bioscrape process
     bioscrape_process = Bioscrape({
         'sbml_file': 'paper/LacOperon_simple.xml',
-        'time_step': 1,
+        'time_step': time_step,
     })
 
+    # initial state
+    initial_state = bioscrape_process.initial_state()
+
+    # run simulation
     settings = {
-        'total_time': 1000,
-        #     'initial_state': {'globals': {'mass': 1000 * units.fg}},
+        'total_time': total_time,
+        'initial_state': initial_state,
         'display_info': False,
         'progress_bar': False}
     timeseries = simulate_process_in_experiment(bioscrape_process, settings)
 
     return timeseries
-
-
-def get_metabolism_initial():
-    config = get_iAF1260b_config()
-    metabolism = DynamicFBA(config)
-    initial_config = {}
-    initial_state = metabolism.initial_state(
-        config=initial_config)
-    return initial_state
 
 
 def run_metabolism(
@@ -225,7 +225,7 @@ def run_crn_cobra(
     # get initial state
     initial_state = {
         'agents': {
-            '1': get_metabolism_initial()
+            '1': composite.initial_state()
         }
     }
 
