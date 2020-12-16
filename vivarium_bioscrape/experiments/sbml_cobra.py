@@ -12,13 +12,24 @@ from vivarium.core.process import Process, Deriver, Generator
 from vivarium.library.units import units
 
 # imported processes
-from vivarium_cobra.processes.metabolism import Metabolism, get_iAF1260b_config
+from vivarium_cobra.processes.dynamic_fba import (
+    DynamicFBA, get_iAF1260b_config, print_growth
+)
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 from vivarium.processes.divide_condition import DivideCondition
 from vivarium.processes.meta_division import MetaDivision
 
 # plotting
 from vivarium.plots.simulation_output import plot_simulation_output
+
+
+def get_metabolism_config(
+    volume=1e-5*units.L,
+):
+    config = get_iAF1260b_config()
+    config.update({
+        'bin_volume': volume})
+    return config
 
 
 # Flux deriver
@@ -48,13 +59,6 @@ class FluxDeriver(Deriver):
             }
         }
 
-def get_metabolism_config(
-    volume=1e-5 * units.L,
-):
-    config = get_iAF1260b_config()
-    config.update({
-        'bin_volume': volume})
-    return config
 
 # CRN-COBRA composite
 class CRN_COBRA(Generator):
@@ -89,7 +93,7 @@ class CRN_COBRA(Generator):
 
         processes = {
             'crn': Bioscrape(config['crn']),
-            'cobra': Metabolism(config['cobra'])}
+            'cobra': DynamicFBA(config['cobra'])}
 
         # configure derivers
         flux_config = {
@@ -143,11 +147,9 @@ class CRN_COBRA(Generator):
 
 
 
-
-
 # experiments
 def run_bioscrape():
-    # initialize Bioscrape process with SBML file
+    # initialize Bioscrape process
     bioscrape_process = Bioscrape({
         'sbml_file': 'paper/LacOperon_simple.xml',
         'time_step': 1,
@@ -158,21 +160,33 @@ def run_bioscrape():
         #     'initial_state': {'globals': {'mass': 1000 * units.fg}},
         'display_info': False,
         'progress_bar': False}
+    timeseries = simulate_process_in_experiment(bioscrape_process, settings)
 
-    return simulate_process_in_experiment(bioscrape_process, settings)
+    return timeseries
 
 
 def get_metabolism_initial():
     config = get_iAF1260b_config()
-    metabolism = Metabolism(config)
+    metabolism = DynamicFBA(config)
     initial_config = {}
     initial_state = metabolism.initial_state(
         config=initial_config)
     return initial_state
 
-def run_metabolism():
-    config = get_iAF1260b_config()
-    metabolism = Metabolism(config)
+
+def run_metabolism(
+        total_time=2500,
+        time_step=10,
+        volume=1e-5 * units.L,
+):
+    # configure cobra process
+    cobra_config = get_iAF1260b_config()
+    cobra_config.update({
+        'time_step': time_step,
+        'bin_volume': volume})
+    metabolism = DynamicFBA(cobra_config)
+
+    # initial state
     initial_config = {}
     initial_state = metabolism.initial_state(
         config=initial_config)
@@ -180,22 +194,33 @@ def run_metabolism():
     # run simulation
     sim_settings = {
         'initial_state': initial_state,
-        'total_time': 100}
-    return simulate_process_in_experiment(metabolism, sim_settings)
+        'total_time': total_time}
+    timeseries = simulate_process_in_experiment(metabolism, sim_settings)
+    print_growth(timeseries['global'])
+
+    return timeseries
 
 
 def run_crn_cobra(
-        total_time=400,
+        total_time=2500,
+        time_step=10,
         agent_id='1',
         volume=1e-5 * units.L,
 ):
 
-    # initialize GrowDivide with parameters
-    config = {
+    # initialize composite
+    cobra_config = get_iAF1260b_config()
+    cobra_config.update({
+        'time_step': time_step,
+        'bin_volume': volume})
+    crn_config = {'time_step': time_step}
+
+    composite_config = {
         'agent_id': agent_id,
-        'cobra': get_metabolism_config(volume=volume)
-    }
-    composite = CRN_COBRA(config)
+        'crn': crn_config,
+        'cobra': cobra_config}
+
+    composite = CRN_COBRA(composite_config)
 
     # get initial state
     initial_state = {
@@ -213,9 +238,9 @@ def run_crn_cobra(
 
     # run and retrieve the data
     experiment.update(total_time)
-    return experiment.emitter.get_timeseries()
-
-
+    timeseries = experiment.emitter.get_timeseries()
+    print_growth(timeseries['agents']['1']['global'])
+    return timeseries
 
 
 # plotting
