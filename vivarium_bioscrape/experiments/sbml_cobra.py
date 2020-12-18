@@ -1,5 +1,8 @@
+import os
 
 import numpy as np
+import pylab as plt
+
 
 # vivarium imports
 from vivarium.core.control import Control
@@ -42,24 +45,15 @@ class FluxDeriver(Deriver):
     def ports_schema(self):
         return {
             'deltas': {
-                '*': {
-                    '_default': 0.0
-                }
-            },
+                '*': {'_default': 0.0}},
             'fluxes': {
-                '*': {
-                    '_default': 0.0
-                }
-            }
-        }
+                '*': {'_default': 0.0}}}
     def next_update(self, timestep, states):
         deltas = states['deltas']
         return {
             'fluxes': {
                 reaction_id: delta/self.parameters['time_step']
-                for reaction_id, delta in deltas.items()
-            }
-        }
+                for reaction_id, delta in deltas.items()}}
 
 
 # CRN-COBRA composite
@@ -67,6 +61,14 @@ class CRN_COBRA(Generator):
     name = 'crn_cobra'
     defaults = {
         'agent_id': np.random.randint(0, 100),
+        'flux_names': {
+            'Lactose_internal': 'EX_lcts_e',
+            'Glucose_internal': 'EX_glc__D_e',
+        },
+        'name_map': {
+            'Lactose_external': 'lcts_e',
+            'Glucose_external': 'glc__D_e',
+        },
         'crn': {
             'sbml_file': 'paper/LacOperon_simple.xml',
         },
@@ -90,16 +92,14 @@ class CRN_COBRA(Generator):
     def __init__(self, config):
         super(CRN_COBRA, self).__init__(config)
 
+        self.processes = {
+            'crn': Bioscrape(self.config['crn']),
+            'cobra': DynamicFBA(self.config['cobra'])}
+
     def generate_processes(self, config):
-        # TODO -- reaction names from CRN needs to be matched with COBRA
-
-        processes = {
-            'crn': Bioscrape(config['crn']),
-            'cobra': DynamicFBA(config['cobra'])}
-
         # configure derivers
         flux_config = {
-            'time_step': processes['crn'].local_timestep()}
+            'time_step': self.processes['crn'].local_timestep()}
         division_config = dict(
             daughter_path=config['daughter_path'],
             agent_id=config['agent_id'],
@@ -112,13 +112,33 @@ class CRN_COBRA(Generator):
             #             'division': MetaDivision(division_config),
         }
 
-        return {**processes, **derivers}
+        return {**self.processes, **derivers}
 
     def generate_topology(self, config):
+        name_map = config['name_map']
+        flux_names = config['flux_names']
+
+        # map species names
+        species_names = self.processes['crn'].get_species_names()
+        species_mapping = {}
+        for species in species_names:
+            if 'external' in species:
+                species_mapping[species] = ('external', name_map.get(species, species))
+            else:
+                species_mapping[species] = ('internal', name_map.get(species, species))
+
+        # exchange deltas connect to flux_bounds in metabolism
+        flux_mapping = {}
+        for flux in species_names:
+            if flux in flux_names.keys():
+                flux_mapping[flux] = ('flux_bounds', flux_names.get(flux, flux))
+            else:
+                flux_mapping[flux] = ('delta_species', flux)
+
         return {
             'crn': {
-                'species': ('species',),
-                'delta_species': ('delta_species',),
+                'species': species_mapping,
+                'delta_species': flux_mapping,
                 'rates': ('rates',),
                 'globals': ('globals',),
             },
@@ -132,19 +152,19 @@ class CRN_COBRA(Generator):
             },
             'flux_deriver': {
                 'deltas': ('delta_species',),  # TODO -- need to add units!
-                'fluxes': ('flux_bounds_2',),
+                'fluxes': ('flux_bounds',),
             },
-            #             'globals_deriver': {
-            #                 'global': ('boundary',)
-            #             },
-            #             'divide_condition': {
-            #                 'variable': ('boundary', 'mass',),
-            #                 'divide': ('boundary', 'divide',)
-            #             },
-            #             'division': {
-            #                 'global': ('boundary',),
-            #                 'agents': config['agents_path']
-            #             }
+            # 'globals_deriver': {
+            #     'global': ('boundary',)
+            # },
+            # 'divide_condition': {
+            #     'variable': ('boundary', 'mass',),
+            #     'divide': ('boundary', 'divide',),
+            # },
+            # 'division': {
+            #     'global': ('boundary',),
+            #     'agents': config['agents_path'],
+            # }
         }
 
 
@@ -155,10 +175,10 @@ def run_bioscrape(
         time_step=1,
 ):
     # initialize Bioscrape process
-    bioscrape_process = Bioscrape({
+    bioscrape_config = {
         'sbml_file': 'paper/LacOperon_simple.xml',
-        'time_step': time_step,
-    })
+        'time_step': time_step}
+    bioscrape_process = Bioscrape(bioscrape_config)
 
     # initial state
     initial_state = bioscrape_process.initial_state()
@@ -175,7 +195,7 @@ def run_bioscrape(
 
 
 def run_metabolism(
-        total_time=2500,
+        total_time=250,
         time_step=10,
         volume=1e-5 * units.L,
 ):
@@ -202,21 +222,29 @@ def run_metabolism(
 
 
 def run_crn_cobra(
-        total_time=2500,
+        total_time=200,
         time_step=10,
         agent_id='1',
         volume=1e-5 * units.L,
 ):
 
-    # initialize composite
+    ## initialize  he composite
+    # COBRA config
     cobra_config = get_iAF1260b_config()
     cobra_config.update({
         'time_step': time_step,
         'bin_volume': volume})
+    # CRN config
     crn_config = {'time_step': time_step}
+    # flux map
+    flux_map = {
+        'Lactose_internal': 'EX_lcts_e',
+        'Glucose_internal': 'EX_glc__D_e'
+    }
 
     composite_config = {
         'agent_id': agent_id,
+        'flux_map': flux_map,
         'crn': crn_config,
         'cobra': cobra_config}
 
@@ -238,12 +266,30 @@ def run_crn_cobra(
 
     # run and retrieve the data
     experiment.update(total_time)
-    timeseries = experiment.emitter.get_timeseries()
-    print_growth(timeseries['agents']['1']['global'])
+    timeseries1 = experiment.emitter.get_timeseries()
+    timeseries = timeseries1['agents']['1']
+    timeseries['time'] = timeseries1['time']
+    print_growth(timeseries['global'])
     return timeseries
 
 
 # plotting
+
+# TODO -- Control should handle figure saving.  run_plots should just return the fig.
+# def save_figure(out_dir, filename=None):
+#     column_width = 3
+#
+#     import ipdb; ipdb.set_trace()
+#     if out_dir:
+#         os.makedirs(out_dir, exist_ok=True)
+#         if filename is None:
+#             filename = 'simulation'
+#         # save figure
+#         fig_path = os.path.join(out_dir, filename)
+#         plt.subplots_adjust(wspace=column_width/3, hspace=column_width/3)
+#         plt.savefig(fig_path, bbox_inches='tight')
+
+
 def plots_1(data, config, out_dir='out'):
     plot_simulation_output(
         data,
@@ -252,14 +298,69 @@ def plots_1(data, config, out_dir='out'):
     )
 
 
+# plotting function for metabolism output
+def plot_metabolism(data, config, out_dir='out'):
+
+    ncol = config.get('ncol', 2)
+    original_fontsize = plt.rcParams['font.size']
+    plt.rcParams.update({'font.size': 9})
+
+    # initialize subplots
+    n_rows = 2
+    n_cols = 2
+    fig = plt.figure(figsize=(n_cols * 7, n_rows * 3))
+    grid = plt.GridSpec(n_rows, n_cols)
+
+    time_vec = data['time']
+
+    # mass
+    ax = fig.add_subplot(grid[0, 0])
+    ax.plot(time_vec, data['global'][('mass', 'femtogram')], label='mass')
+    ax.set_title('total compartment mass (fg)')
+    ax.set_xlabel('time (sec)')
+    #     ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5), ncol=ncol)
+
+    # external
+    ax = fig.add_subplot(grid[0, 1])
+    for mol_id, series in data['external'].items():
+        if sum(series) != 0.0:
+            ax.plot(time_vec, series, label=mol_id)
+    ax.set_title('external concentrations (log)')
+    ax.set_yscale('log')
+    ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5), ncol=ncol)
+
+    # internal
+    ax = fig.add_subplot(grid[1, 1])
+    for mol_id, series in data['internal_counts'].items():
+        if sum(series) != 0.0:
+            ax.plot(time_vec, series, label=mol_id)
+    ax.set_title('internal molecule counts (log)')
+    ax.set_xlabel('time (sec)')
+    ax.set_yscale('log')
+    fig.tight_layout()
+    plt.rcParams.update({'font.size': original_fontsize})
+
+
+    fig_path = os.path.join(out_dir, 'metabolism')
+    plt.savefig(fig_path, bbox_inches='tight')
+    # save_figure(out_dir, 'metabolism')
+
+
 experiments_library = {
     '1': run_bioscrape,
-    '2': run_metabolism,
+    '2': {
+        'experiment': run_metabolism,
+        'config': {}
+    },
     '3': run_crn_cobra,
 }
 plots_library = {
     '1': {
         'plot': plots_1,
+        'config': {},
+    },
+    'plot_metabolism': {
+        'plot': plot_metabolism,
         'config': {},
     },
 }
@@ -273,12 +374,18 @@ workflow_library = {
     '2': {
         'name': 'cobra_alone',
         'experiment': '2',
-        'plots': ['1'],
+        'plots': [
+            '1',
+            'plot_metabolism',
+        ],
     },
     '3': {
         'name': 'crn_cobra_composite',
         'experiment': '3',
-        'plots': ['1'],
+        'plots': [
+            '1',
+            'plot_metabolism',
+        ],
     },
 }
 
