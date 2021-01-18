@@ -8,7 +8,7 @@ with open("README.md", 'r') as readme:
 
 setup(
     name='vivarium-bioscrape',
-    version='0.0.1',
+    version='0.0.0.1',
     packages=[
         'vivarium_bioscrape',
         'vivarium_bioscrape.processes',
@@ -16,10 +16,10 @@ setup(
         'vivarium_bioscrape.experiments',
         'vivarium_bioscrape.library'
     ],
-    author='',  # TODO: Put your name here.
-    author_email='',  # TODO: Put your email here.
-    url='',  # TODO: Put your project URL here.
-    license='',  # TODO: Choose a license.
+    author='William Poole, Eran Agmon, Ryan Spangler',  # TODO: Put your name here.
+    author_email='',
+    url='https://github.com/vivarium-collective/vivarium-bioscrape',  # TODO: Put your project URL here.
+    license='MIT',
     entry_points={
         'console_scripts': []},
     short_description='',  # TODO: Describe your project briefely.
@@ -29,6 +29,6 @@ setup(
     include_package_data=True,
     install_requires=[
         'vivarium-core',
-        # TODO: Add other dependencies.
+        'bioscrape'
     ],
 )
