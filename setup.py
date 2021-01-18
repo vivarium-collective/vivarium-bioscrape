@@ -22,7 +22,7 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': []},
-    short_description='',  # TODO: Describe your project briefely.
+    short_description='Integrates Vivarium with the Bioscrape CRN simulator, allowing Chemical Reaction Network Models to be Vivarium Processes.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     package_data={},

@@ -1,25 +1,25 @@
 # Vivarium-Bioscrape
 
+Vivarium-bioscrape is a python package connecting the multiscale simulation framework Vivarium to the chemical reaction network (CRN) simulator Bioscrape. In particular, this package wraps bioscrape as a vivarium Process and includes a number of Derivers in the form of OneWayMaps to help connect CRNs to eachother and other processes.
+
 Visit [the Vivarium Core
 documentation](https://vivarium-core.readthedocs.io/) to learn how to
 use the core Vivarium engine to create computational biology models.
 
+Visit [the Bioscrape Wiki](https://github.com/biocircuits/bioscrape/wiki) to learn about the bioscrape simulator and find bioscrape usage examples.
+
 ## Installation
 
-To run this package from within a local vivarium-bioscrape directory, you need 
-[Bioscrape](https://github.com/biocircuits/bioscrape) installed locally, and 
-set the python path to that directory. This is required because Bioscrape is not 
-available as a pip library.
+The easiest way to install this package is via: 
 
-We recommend setting up a [pyenv](https://github.com/pyenv/pyenv) in the bioscrape 
-directory (with Python>=3.7), and then following the [Bioscrape installation instructions](
-https://github.com/biocircuits/bioscrape/wiki/Installation).
+    pip install vivarium-bioscrape 
 
-Once bioscrape is set up, go to your vivarium-bioscrape directory and set your python path:
+(with Python>=3.7)
 
-```
-$ export PYTHONPATH="/path/to/bioscrape"
-```
+This command will automatically install the package along with vivarium-core and bioscrape and all othe dependencies. 
+
+Please note that Bioscrape is a cython extension module and requires a C++ compiler to be set up on your computer for installation. Please visit the [Bioscrape Wiki](https://github.com/biocircuits/bioscrape/wiki/Installation) for more information.
+
 
 You can then run the vivarium-bioscrape process with the module format:
 
