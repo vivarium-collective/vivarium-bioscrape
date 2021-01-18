@@ -6,7 +6,7 @@ Bioscrape Composite #1
 import os
 
 # vivarium core imports
-from vivarium.core.process import Generator
+from vivarium.core.process import Composite
 from vivarium.core.composition import (
     simulate_compartment_in_experiment,
     COMPARTMENT_OUT_DIR,
@@ -20,7 +20,7 @@ from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 NAME = 'composite_1'
 
-class BioscrapeComposite(Generator):
+class BioscrapeComposite(Composite):
 
     name = NAME
     defaults = {

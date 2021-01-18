@@ -13,7 +13,7 @@ import numpy as np
 # vivarium core imports
 from vivarium.library.schema import array_from, array_to
 from vivarium.core.experiment import pp
-from vivarium.core.process import Generator
+from vivarium.core.process import Composite
 from vivarium.core.composition import (
     simulate_compartment_in_experiment,
     COMPARTMENT_OUT_DIR,
@@ -29,7 +29,7 @@ from vivarium_bioscrape.processes.one_way_map import OneWayMap
 NAME = 'bioscrape_connector'
 
 
-class BioscrapeConnector(Generator):
+class BioscrapeConnector(Composite):
     name = NAME
     defaults = {
         'models': {},

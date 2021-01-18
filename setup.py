@@ -13,12 +13,11 @@ setup(
         'vivarium_bioscrape',
         'vivarium_bioscrape.processes',
         'vivarium_bioscrape.composites',
-        'vivarium_bioscrape.experiments',
         'vivarium_bioscrape.library'
     ],
-    author='William Poole, Eran Agmon, Ryan Spangler',  # TODO: Put your name here.
+    author='William Poole, Eran Agmon, Ryan Spangler',
     author_email='',
-    url='https://github.com/vivarium-collective/vivarium-bioscrape',  # TODO: Put your project URL here.
+    url='https://github.com/vivarium-collective/vivarium-bioscrape',
     license='MIT',
     entry_points={
         'console_scripts': []},
