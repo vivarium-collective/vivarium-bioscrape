@@ -28,7 +28,8 @@ class Bioscrape(Process):
 
     # declare default parameters as class variables
     defaults = {
-        'sbml_file': 'model.xml',
+        'bioscrape_model':None,
+        'sbml_file': None,
         'internal_dt': 0.01,
         'stochastic': False,
         'initial_volume':1.0
@@ -39,16 +40,26 @@ class Bioscrape(Process):
             parameters = {}
 
         super(Bioscrape, self).__init__(parameters)
-
+        print("WTF?", parameters, self.parameters)
         # get the parameters out of initial_parameters if available, or use defaults
-        self.sbml_file = self.parameters['sbml_file']
+        if self.parameters['sbml_file'] is None and self.parameters['bioscrape_model'] is None:
+            raise ValueError("Bioscrape Process requires either an sbml_file or bioscrape_model parameter.")
+        elif self.parameters['sbml_file'] is None and isinstance(self.parameters['bioscrape_model'], Model):
+            # load the sbml file to create the model
+            self.sbml_file = None
+            self.model = self.parameters['bioscrape_model']
+        elif isinstance(self.parameters['sbml_file'], str) and self.parameters['bioscrape_model'] is None:
+            self.sbml_file = self.parameters['sbml_file']
+            self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
+        elif isinstance(self.parameters['sbml_file'], str) and isinstance(self.parameters['bioscrape_model'], Model):
+            raise ValueError("Bioscrape recieved an sbml_file and a bioscrape_model. Please use one or the other.")
+        else:
+            raise ValueError(f"Bioscrape did not recieve a valid bioscrape_model (recieved: {self.parameters['bioscrape_model']} or a valid sbml_file (recieved: {self.parameters['sbml_file']}).")
+        
         self.internal_dt = self.parameters['internal_dt']
         self.stochastic = self.parameters['stochastic']
         self.volume = Volume() #Create an internal bioscrape Volume
         self.volume.py_set_volume(self.parameters['initial_volume']) #Set the volume
-
-        # load the sbml file to create the model
-        self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
 
         # create the interface
         self.interface = ModelCSimInterface(self.model)
@@ -108,7 +119,12 @@ class Bioscrape(Process):
                     '_updater': 'set',
                     '_emit': True}
                 for species in self.model.get_species()},
-            'rates': {},
+            'rates': {
+                p : {
+                    '_default': self.model.get_parameter_dictionary()[p],
+                    '_updater':'set',
+                }
+                for p in self.model.get_param_list()},
             'globals': {
                 'volume': {
                     '_default':self.parameters['initial_volume'],
@@ -118,7 +134,10 @@ class Bioscrape(Process):
         }
 
     def next_update(self, timestep, states):
-        self.model.set_species(states['species'])
+        if 'species' in states:
+            self.model.set_species(states['species'])
+        if 'rates' in states:
+            self.model.set_params(states['rates'])
 
         timepoints = np.arange(0, timestep, self.internal_dt)
 
@@ -130,6 +149,7 @@ class Bioscrape(Process):
         result = output.py_get_result()[-1]
         result_state = self.get_state(result)
         delta = get_delta(states['species'], result_state)
+        rates = self.model.get_parameter_dictionary()
 
         #If the simulation is a volume simulation, return the change in volume
         if getattr(output, "py_get_volume", None) is not None:
@@ -142,6 +162,7 @@ class Bioscrape(Process):
         return {
             'species': delta,
             'delta_species': delta,
+            'rates':rates,
             'globals': {'volume': deltaV}}
 
     def get_model(self):
@@ -165,12 +186,7 @@ def get_delta(before, after):
 
 
 def run_bioscrape_process():
-    '''Run a simulation of the process.
-
-    Returns:
-        The simulation output.
-    '''
-    # initialize the process by passing initial_parameters
+    #Create a bioscrape process
     initial_parameters = {
         'sbml_file': 'Notebooks/model1.xml'}
     bioscrape_process = Bioscrape(initial_parameters)
@@ -180,19 +196,70 @@ def run_bioscrape_process():
         'total_time': 10,
         'initial_state': bioscrape_process.initial_state()}
     output = simulate_process_in_experiment(bioscrape_process, sim_settings)
+    
 
     # Return the data from the simulation.
     return output
 
+def test_bioscrape_instantiation():
+
+    #Deterministic Case
+    bioscrape_process = Bioscrape({'sbml_file': 'Notebooks/model1.xml'})
+    assert isinstance(bioscrape_process.model, Model)
+    assert isinstance(bioscrape_process.interface, ModelCSimInterface)
+    assert bioscrape_process.stochastic == False
+    assert isinstance(bioscrape_process.simulator, DeterministicSimulator)
+
+    #Stochastic Case
+    bioscrape_process = Bioscrape({'sbml_file': 'Notebooks/model1.xml', "stochastic":True})
+    assert isinstance(bioscrape_process.model, Model)
+    assert isinstance(bioscrape_process.interface, ModelCSimInterface)
+    assert bioscrape_process.stochastic == True
+    assert isinstance(bioscrape_process.simulator, VolumeSSASimulator)
+
+    #Custom Model Case
+    M = Model(species = ["S"])
+    bioscrape_process2 = Bioscrape({'bioscrape_model': M})
+    assert M == bioscrape_process2.model
+    assert bioscrape_process2.sbml_file is None
+
+def test_next_update():
+    initial_parameters = {
+        'sbml_file': 'Notebooks/model1.xml'}
+    bioscrape_process = Bioscrape(initial_parameters)
+
+    initial_state = bioscrape_process.initial_state()
+    output = bioscrape_process.next_update(1.0, initial_state)
+
+    assert "species" in output
+    assert "delta_species" in output
+    assert all([output["species"][s] == output["delta_species"][s] for s in output["species"]])
+    assert "rates" in output
+
+    #set all the rates to 0
+    state = {
+        "rates": {p:0 for p in output["rates"]}, 
+        "species":bioscrape_process.initial_state()["species"]
+        }
+    print(bioscrape_process.initial_state())
+    output2 = bioscrape_process.next_update(1.0, state)
+    #nothing should change in the simulation
+    assert all([output2["species"][s] == output2["delta_species"][s] ==0 for s in output2["species"]])
 
 def test_bioscrape_process():
     '''Test that the process runs correctly.
 
     This will be executed by pytest.
     '''
-    output = run_bioscrape_process()
-    # TODO: Add assert statements to ensure correct performance.
 
+    output = run_bioscrape_process()
+
+    #DNA concentration should be constant
+    assert all([v == output["species"]["dna_G"][0] for v in output["species"]["dna_G"]])
+    #RNA concentration should be increasing
+    assert all([output["species"]["rna_T"][i] < output["species"]["rna_T"][i+1] for i in range(len(output["species"]["rna_T"])-1)])
+    #Protein concentration should be increasing
+    assert all([output["species"]["protein_X"][i] < output["species"]["protein_X"][i+1] for i in range(len(output["species"]["protein_X"])-1)]) 
 
 def main():
     '''Simulate the process and plot results.'''
