@@ -52,7 +52,6 @@ class BioscrapeConnector(Composite):
         self.models = {}
         self.connections = {}
         self.connection_counts = {} #Stores the number of connections between pairs of processes, for naming purposes
-
         super(BioscrapeConnector, self).__init__(config)
         self.topology = self.initial_topology(self.config)
 
@@ -93,11 +92,13 @@ class BioscrapeConnector(Composite):
             initial_state[f'{source}_species'] = source_state['species']
             initial_state[f'{target}_species'] = target_state['species']
 
+        #Reset internal variables because generate_processes will be called again
         return initial_state
 
     def generate_processes(self, config):
         # make bioscrape processes
-        print("config", config['models'])
+        
+        self.connection_counts = {} #models and connections may be overwritten, so reset the counts
         for name, parameters in config['models'].items():
             self.add_model(name = name, bioscrape_parameters = parameters)
 
@@ -108,6 +109,7 @@ class BioscrapeConnector(Composite):
             self.add_connection(source, target, map_function)
 
         # combine model and connection processes
+
         return {**self.models, **self.connections}
 
     def generate_topology(self, config):
@@ -125,18 +127,17 @@ class BioscrapeConnector(Composite):
 
         # make connections between model stores
         connections = {}
-        counts = {} #stores the number of connections between models
         for connection in config['connections']:
             source = connection['source']
             target = connection['target']
 
             #Count is used to allow multiple connections between models if desired
-            if (source, target) in counts:
-                counts[(source, target)] += 1
-                count = counts[(source, target)]
+            if (source, target) in self.connection_counts:
+                self.connection_counts[(source, target)] += 1
+                count = self.connection_counts[(source, target)]
             else:
                 count = 1
-                counts[(source, target)] = 1
+                self.connection_counts[(source, target)] = count
 
             connections[f'{source}_{target}_connector_{count}'] = {
                 'source_deltas': (f'{source}_deltas',),
@@ -154,9 +155,9 @@ class BioscrapeConnector(Composite):
         if name is None:
             name = str(len(self.models))
 
-        print("Adding model", name)
-        if name in self.models:
-            raise ValueError(f"A model named {name} already exists!")
+        #This test doesn't allow generate to be called multiple times
+        #if name in self.models:
+        #    raise ValueError(f"A model named {name} already exists!")
 
         if bioscrape_process is not None and bioscrape_parameters is not None:
             raise ValueError("Recieved both a bioscrape_process and bioscrape_parameters! Please use one or the other.")
@@ -218,7 +219,7 @@ class BioscrapeConnector(Composite):
             }
         }
 
-def test_instantiation():
+def test_connector():
     
     bioscrape_process_1 = Bioscrape(parameters = {
         'sbml_file': 'Notebooks/model1.xml'
@@ -266,13 +267,13 @@ def test_instantiation():
         {'source': '1', 'target': '3', 'map_function': map_1_3},
         {'source': '3', 'target': '1', 'map_function': map_3_1}
     ]
-    print("making composite")
     # make the composite
     composite = BioscrapeConnector(
         models=models,
         connections=connections,
     )
-    print("composite made!")
+    
+
     ## Run a simulation
     # initial state
     config = {
@@ -282,14 +283,29 @@ def test_instantiation():
     }
     initial_state = composite.initial_state(config)
 
+    #This occurs after composite.generate() is called
+    assert len(composite.models) == 2
+    assert len(composite.connections) == 2
+
     # run a simulation
     sim_settings = {
         'total_time': 10,
         'initial_state': initial_state}
     output = simulate_compartment_in_experiment(composite, sim_settings)
-    print(output)
-    raise
 
+    #DNA should be constant
+    assert all([output['1_species']['dna_G'][0] == g for g in output['1_species']['dna_G']])
+
+    #RNA should be the same between the two simulations
+    assert output['1_species']['rna_T'] == output['3_species']['rna_T']
+
+    #total RNAase should be constant
+    RNAase_tot = output['3_species']['protein_RNAase'][0]
+
+    rnas = [output['3_species']['protein_RNAase'][i]+output['3_species']['complex_protein_RNAase_rna_T_'][i] for i in range(len(output['3_species']['complex_protein_RNAase_rna_T_']))]
+
+    #Slight numerical errors are possible, but total RNAase should be nearly constant
+    assert  all([np.abs(s-RNAase_tot) < 10**-6 for s in rnas])
 
 def main():
     '''Simulate the composite and plot results.'''
