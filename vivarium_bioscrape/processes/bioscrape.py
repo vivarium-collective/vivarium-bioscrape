@@ -20,7 +20,9 @@ NAME = 'bioscrape'
 
 class Bioscrape(Process):
     '''
-    This mock process provides a basic bioscrape that can be used for a new process
+    This process provides a wrapper around a bioscrape model, interface, and simulator.
+    It allows for stochastic or determinstic simulation, variable volume, and generates ports
+    to access all bioscrape species and rate parameters.
     '''
 
     # give the process a name, so that it can register in the process_repository
@@ -71,10 +73,12 @@ class Bioscrape(Process):
             self.simulator = DeterministicSimulator()
 
     def get_species_names(self):
+        #Gets the names of teh species in a bioscrape model
         model_species = self.model.get_species_dictionary()
         return list(model_species.keys())
 
     def get_state(self, array):
+        #Gets the state of a bioscrape simulation
         mapping = self.model.get_species2index()
 
         return {
@@ -82,6 +86,7 @@ class Bioscrape(Process):
             for species, index in mapping.items()}
 
     def initial_state(self, config=None):
+        #gets the current (or initial) state of a bioscrape simulation.
         if config is None:
             config = {}
         self.model.set_species(config)

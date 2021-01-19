@@ -97,6 +97,7 @@ class BioscrapeConnector(Composite):
 
     def generate_processes(self, config):
         # make bioscrape processes
+        print("config", config['models'])
         for name, parameters in config['models'].items():
             self.add_model(name = name, bioscrape_parameters = parameters)
 
@@ -124,9 +125,18 @@ class BioscrapeConnector(Composite):
 
         # make connections between model stores
         connections = {}
+        counts = {} #stores the number of connections between models
         for connection in config['connections']:
             source = connection['source']
             target = connection['target']
+
+            #Count is used to allow multiple connections between models if desired
+            if (source, target) in counts:
+                counts[(source, target)] += 1
+                count = counts[(source, target)]
+            else:
+                count = 1
+                counts[(source, target)] = 1
 
             connections[f'{source}_{target}_connector_{count}'] = {
                 'source_deltas': (f'{source}_deltas',),
@@ -144,6 +154,7 @@ class BioscrapeConnector(Composite):
         if name is None:
             name = str(len(self.models))
 
+        print("Adding model", name)
         if name in self.models:
             raise ValueError(f"A model named {name} already exists!")
 
@@ -207,15 +218,8 @@ class BioscrapeConnector(Composite):
             }
         }
 
-
-def main():
-    '''Simulate the composite and plot results.'''
-
-    # make an output directory to save plots
-    out_dir = os.path.join(COMPARTMENT_OUT_DIR, NAME)
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
-
+def test_instantiation():
+    
     bioscrape_process_1 = Bioscrape(parameters = {
         'sbml_file': 'Notebooks/model1.xml'
         })
@@ -236,7 +240,7 @@ def main():
         model3_vector/np.sum(model3_vector),
         model1_vector/np.sum(model1_vector))
 
-    # define map function
+        # define map function
     def map_1_3(states):
         input_array = array_from(states['source_deltas'])
         output_array = np.dot(input_array, projection_1_3)
@@ -262,13 +266,13 @@ def main():
         {'source': '1', 'target': '3', 'map_function': map_1_3},
         {'source': '3', 'target': '1', 'map_function': map_3_1}
     ]
-
+    print("making composite")
     # make the composite
     composite = BioscrapeConnector(
         models=models,
         connections=connections,
     )
-
+    print("composite made!")
     ## Run a simulation
     # initial state
     config = {
@@ -280,9 +284,21 @@ def main():
 
     # run a simulation
     sim_settings = {
-        'total_time': 500,
+        'total_time': 10,
         'initial_state': initial_state}
     output = simulate_compartment_in_experiment(composite, sim_settings)
+    print(output)
+    raise
+
+
+def main():
+    '''Simulate the composite and plot results.'''
+    #make an output directory to save plots
+    out_dir = os.path.join(COMPARTMENT_OUT_DIR, NAME)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    output = test_instantiation()
 
     # plot simulation output
     plot_settings = {}
