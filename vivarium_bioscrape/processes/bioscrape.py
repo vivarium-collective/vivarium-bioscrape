@@ -28,8 +28,6 @@ class Bioscrape(Process):
 
     # declare default parameters as class variables
     defaults = {
-        'bioscrape_model':None,
-        'sbml_file': None,
         'internal_dt': 0.01,
         'stochastic': False,
         'initial_volume':1.0
@@ -42,13 +40,13 @@ class Bioscrape(Process):
         super(Bioscrape, self).__init__(parameters)
         print("WTF?", parameters, self.parameters)
         # get the parameters out of initial_parameters if available, or use defaults
-        if self.parameters['sbml_file'] is None and self.parameters['bioscrape_model'] is None:
+        if 'sbml_file' not in self.parameters and 'bioscrape_model' not in self.parameters:
             raise ValueError("Bioscrape Process requires either an sbml_file or bioscrape_model parameter.")
-        elif self.parameters['sbml_file'] is None and isinstance(self.parameters['bioscrape_model'], Model):
+        elif 'sbml_file' not in self.parameters and isinstance(self.parameters['bioscrape_model'], Model):
             # load the sbml file to create the model
             self.sbml_file = None
             self.model = self.parameters['bioscrape_model']
-        elif isinstance(self.parameters['sbml_file'], str) and self.parameters['bioscrape_model'] is None:
+        elif isinstance(self.parameters['sbml_file'], str) and 'bioscrape_model' not in self.parameters:
             self.sbml_file = self.parameters['sbml_file']
             self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
         elif isinstance(self.parameters['sbml_file'], str) and isinstance(self.parameters['bioscrape_model'], Model):

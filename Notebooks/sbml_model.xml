@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
+  <model id="bioscrape_generated_model_599131" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+    <listOfUnitDefinitions>
+      <unitDefinition id="square_metre" name="square_metre">
+        <listOfUnits>
+          <unit kind="metre" exponent="2" scale="0" multiplier="1"/>
+        </listOfUnits>
+      </unitDefinition>
+    </listOfUnitDefinitions>
+    <listOfCompartments>
+      <compartment id="default" name="default" spatialDimensions="3" size="1e-06" constant="true"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="G" name="G" compartment="default" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="P" name="P" compartment="default" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="R" name="R" compartment="default" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="T" name="T" compartment="default" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter id="DummyVar_PositiveProportionalHillPropensity_n_0" name="DummyVar_PositiveProportionalHillPropensity_n_0" value="1" constant="true"/>
+      <parameter id="K" name="K" value="10" constant="true"/>
+      <parameter id="delta" name="delta" value="0.001" constant="true"/>
+      <parameter id="k_tl" name="k_tl" value="0.1" constant="true"/>
+      <parameter id="k_tx" name="k_tx" value="0.05" constant="true"/>
+    </listOfParameters>
+    <listOfReactions>
+      <reaction id="r0" name="r0" reversible="false">
+        <annotation>
+          <PropensityType> type=massaction k=k_tx</PropensityType>
+        </annotation>
+        <listOfReactants>
+          <speciesReference species="G" stoichiometry="1" constant="false"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="G" stoichiometry="1" constant="false"/>
+          <speciesReference species="T" stoichiometry="1" constant="false"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> G </ci>
+              <ci> k_tx </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="r1" name="r1" reversible="false">
+        <annotation>
+          <PropensityType> type=proportionalhillpositive k=k_tl K=K n=DummyVar_PositiveProportionalHillPropensity_n_0 s1=G d=R</PropensityType>
+        </annotation>
+        <listOfReactants>
+          <speciesReference species="T" stoichiometry="1" constant="false"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="T" stoichiometry="1" constant="false"/>
+          <speciesReference species="P" stoichiometry="1" constant="false"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="G"/>
+          <modifierSpeciesReference species="R"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <apply>
+                  <power/>
+                  <ci> G </ci>
+                  <ci> n </ci>
+                </apply>
+                <ci> R </ci>
+                <ci> k_tl </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <apply>
+                  <power/>
+                  <ci> G </ci>
+                  <ci> DummyVar_PositiveProportionalHillPropensity_n_0 </ci>
+                </apply>
+                <ci> K </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="r2" name="r2" reversible="false">
+        <annotation>
+          <PropensityType> type=massaction k=delta</PropensityType>
+        </annotation>
+        <listOfReactants>
+          <speciesReference species="T" stoichiometry="1" constant="false"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> T </ci>
+              <ci> delta </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="r3" name="r3" reversible="false">
+        <annotation>
+          <PropensityType> type=massaction k=delta</PropensityType>
+        </annotation>
+        <listOfReactants>
+          <speciesReference species="P" stoichiometry="1" constant="false"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> P </ci>
+              <ci> delta </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+  </model>
+</sbml>
