@@ -243,7 +243,6 @@ def test_next_update():
         "rates": {p:0 for p in output["rates"]}, 
         "species":bioscrape_process.initial_state()["species"]
         }
-    print(bioscrape_process.initial_state())
     output2 = bioscrape_process.next_update(1.0, state)
     #nothing should change in the simulation
     assert all([output2["species"][s] == output2["delta_species"][s] ==0 for s in output2["species"]])
