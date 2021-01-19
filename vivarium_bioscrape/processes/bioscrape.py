@@ -30,16 +30,13 @@ class Bioscrape(Process):
     defaults = {
         'internal_dt': 0.01,
         'stochastic': False,
-        'initial_volume':1.0
+        'initial_volume': 1.0,
     }
 
     def __init__(self, parameters=None):
-        if parameters is None:
-            parameters = {}
-
         super(Bioscrape, self).__init__(parameters)
-        print("WTF?", parameters, self.parameters)
-        # get the parameters out of initial_parameters if available, or use defaults
+
+        # get the parameters out of self.parameters if available, or use defaults
         if 'sbml_file' not in self.parameters and 'bioscrape_model' not in self.parameters:
             raise ValueError("Bioscrape Process requires either an sbml_file or bioscrape_model parameter.")
         elif 'sbml_file' not in self.parameters and isinstance(self.parameters['bioscrape_model'], Model):
@@ -52,7 +49,9 @@ class Bioscrape(Process):
         elif isinstance(self.parameters['sbml_file'], str) and isinstance(self.parameters['bioscrape_model'], Model):
             raise ValueError("Bioscrape recieved an sbml_file and a bioscrape_model. Please use one or the other.")
         else:
-            raise ValueError(f"Bioscrape did not recieve a valid bioscrape_model (recieved: {self.parameters['bioscrape_model']} or a valid sbml_file (recieved: {self.parameters['sbml_file']}).")
+            raise ValueError(f"Bioscrape did not recieve a valid bioscrape_model "
+                             f"(recieved: {self.parameters['bioscrape_model']} or a "
+                             f"valid sbml_file (recieved: {self.parameters['sbml_file']}).")
         
         self.internal_dt = self.parameters['internal_dt']
         self.stochastic = self.parameters['stochastic']
@@ -118,7 +117,7 @@ class Bioscrape(Process):
                     '_emit': True}
                 for species in self.model.get_species()},
             'rates': {
-                p : {
+                p: {
                     '_default': self.model.get_parameter_dictionary()[p],
                     '_updater':'set',
                 }
