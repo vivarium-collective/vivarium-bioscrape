@@ -14,9 +14,10 @@ from vivarium.core.composition import (
 )
 from vivarium.plots.simulation_output import plot_simulation_output
 from bioscrape.types import Model, Volume
-from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface, VolumeSSASimulator
+from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface, VolumeSSASimulator, SafeModelCSimInterface
 
 NAME = 'bioscrape'
+import time as pytime
 
 class Bioscrape(Process):
     '''
@@ -33,6 +34,7 @@ class Bioscrape(Process):
         'internal_dt': 0.01,
         'stochastic': False,
         'initial_volume': 1.0,
+        'safe_mode':True
     }
 
     def __init__(self, parameters=None):
@@ -61,7 +63,10 @@ class Bioscrape(Process):
         self.volume.py_set_volume(self.parameters['initial_volume']) #Set the volume
 
         # create the interface
-        self.interface = ModelCSimInterface(self.model)
+        if self.parameters["safe_mode"]:
+            self.interface = SafeModelCSimInterface(self.model, max_species_count = 10**8)
+        else:
+            self.interface = ModelCSimInterface(self.model)
 
         #Stochastic
         if self.stochastic:
@@ -108,18 +113,25 @@ class Bioscrape(Process):
         * `_serializer`
         '''
 
+        #Different divide settings between stochastic and determinsitic CRNs
+        if self.stochastic:
+            divider = "binomial"
+        else:
+            divider = "set" #division does not change concentrations
+
         return {
             'species': {
                 species: {
                     '_default': 0.0,
                     '_updater': 'accumulate',
-                    '_emit': True}
+                    '_emit': True,
+                    'divider':divider}
                 for species in self.model.get_species()},
             'delta_species': {
                 species: {
                     '_default': 0.0,
                     '_updater': 'set',
-                    '_emit': True}
+                    '_emit': False}
                 for species in self.model.get_species()},
             'rates': {
                 p: {
@@ -138,15 +150,39 @@ class Bioscrape(Process):
     def next_update(self, timestep, states):
         if 'species' in states:
             self.model.set_species(states['species'])
+            self.interface.py_set_initial_state(self.model.get_species_array())
+            #print("species", states['species'])
         if 'rates' in states:
             self.model.set_params(states['rates'])
+            #print("species", states['rates'])
+
+        #Set Volume if needed
+        if 'volume' in states:
+            self.volume.py_set_volume(states['globals']['volume'])
+
+        # create the interface
 
         timepoints = np.arange(0, timestep, self.internal_dt)
-
+        #print("simulating from", 0, "to", "timestep", "with", len(timepoints), "timepoints")
         if self.stochastic:
+            #print("creating interface and model...")
+            #self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
+            #self.interface = ModelCSimInterface(self.model)
+            #print("creating simulator...")
+            #self.simulator = VolumeSSASimulator()
+
+            print("states", states)
+            print("Volume simulation")
+            ts = pytime.process_time()
             output = self.simulator.py_volume_simulate(self.interface, self.volume, timepoints)
+            te = pytime.process_time()
+            print("took", te-ts)
         else:
+            #print("Deterministic simulation", end = " ")
+            ts = pytime.process_time()
             output = self.simulator.py_simulate(self.interface, timepoints)
+            te = pytime.process_time()
+            #print("took", te-ts)
 
         result = output.py_get_result()[-1]
         result_state = self.get_state(result)
