@@ -15,9 +15,9 @@ from vivarium.core.composition import (
 from vivarium.plots.simulation_output import plot_simulation_output
 from bioscrape.types import Model, Volume
 from bioscrape.simulator import DeterministicSimulator, ModelCSimInterface, VolumeSSASimulator, SafeModelCSimInterface
+from bioscrape.lineage import LineageCSimInterface, LineageModel, LineageSSASimulator, LineageVolumeCellState
 
 NAME = 'bioscrape'
-import time as pytime
 
 class Bioscrape(Process):
     '''
@@ -34,7 +34,8 @@ class Bioscrape(Process):
         'internal_dt': 0.01,
         'stochastic': False,
         'initial_volume': 1.0,
-        'safe_mode':True
+        'safe_mode':False,
+        'lineage':False
     }
 
     def __init__(self, parameters=None):
@@ -49,7 +50,10 @@ class Bioscrape(Process):
             self.model = self.parameters['bioscrape_model']
         elif isinstance(self.parameters['sbml_file'], str) and 'bioscrape_model' not in self.parameters:
             self.sbml_file = self.parameters['sbml_file']
-            self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
+            if self.parameters["lineage"]:
+                self.model = LineageModel(sbml_filename = self.sbml_file,)
+            else:
+                self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
         elif isinstance(self.parameters['sbml_file'], str) and isinstance(self.parameters['bioscrape_model'], Model):
             raise ValueError("Bioscrape recieved an sbml_file and a bioscrape_model. Please use one or the other.")
         else:
@@ -59,23 +63,37 @@ class Bioscrape(Process):
         
         self.internal_dt = self.parameters['internal_dt']
         self.stochastic = self.parameters['stochastic']
-        self.volume = Volume() #Create an internal bioscrape Volume
-        self.volume.py_set_volume(self.parameters['initial_volume']) #Set the volume
+        
+        
+        #Toggle using Lineage Model
+        if self.parameters["lineage"]:
+            if not self.stochastic:
+                raise ValueError("Bioscrape lineage only available with stochastic = True")
+            self.simulator = LineageSSASimulator()
+            self.interface = LineageCSimInterface(self.model)
+            self.volume = LineageVolumeCellState() #Create an internal bioscrape Volume
+        #Otherwise use normal bioscrape models
+        else: 
+            # create the interface
+            if self.parameters["safe_mode"]:
+                self.interface = SafeModelCSimInterface(self.model, max_species_count = 10**8)
+            else:
+                self.interface = ModelCSimInterface(self.model)
 
-        # create the interface
-        if self.parameters["safe_mode"]:
-            self.interface = SafeModelCSimInterface(self.model, max_species_count = 10**8)
-        else:
-            self.interface = ModelCSimInterface(self.model)
+            #Stochastic
+            if self.stochastic:
+                self.simulator = VolumeSSASimulator()
+            #Not Stochastic
+            elif not self.stochastic:
+                self.interface.py_prep_deterministic_simulation()
+                # create a Simulator
+                self.simulator = DeterministicSimulator()
+            self.volume = Volume() #Create an internal bioscrape Volume
 
-        #Stochastic
-        if self.stochastic:
-            self.simulator = VolumeSSASimulator()
-        #Not Stochastic
-        elif not self.stochastic:
-            self.interface.py_prep_deterministic_simulation()
-            # create a Simulator
-            self.simulator = DeterministicSimulator()
+        #Set dt
+        self.interface.py_set_dt(self.internal_dt)
+        #Set the volume
+        self.volume.py_set_volume(self.parameters['initial_volume']) 
 
     def get_species_names(self):
         #Gets the names of teh species in a bioscrape model
@@ -151,10 +169,8 @@ class Bioscrape(Process):
         if 'species' in states:
             self.model.set_species(states['species'])
             self.interface.py_set_initial_state(self.model.get_species_array())
-            #print("species", states['species'])
         if 'rates' in states:
             self.model.set_params(states['rates'])
-            #print("species", states['rates'])
 
         #Set Volume if needed
         if 'volume' in states:
@@ -163,26 +179,12 @@ class Bioscrape(Process):
         # create the interface
 
         timepoints = np.arange(0, timestep, self.internal_dt)
-        #print("simulating from", 0, "to", "timestep", "with", len(timepoints), "timepoints")
-        if self.stochastic:
-            #print("creating interface and model...")
-            #self.model = Model(sbml_filename = self.sbml_file, sbml_warnings = False)
-            #self.interface = ModelCSimInterface(self.model)
-            #print("creating simulator...")
-            #self.simulator = VolumeSSASimulator()
-
-            print("states", states)
-            print("Volume simulation")
-            ts = pytime.process_time()
+        if self.parameters["lineage"]:
+            output = self.simulator.py_SimulateSingleCell(timepoints, Model = self.model, interface = self.interface, v = self.volume)
+        elif self.stochastic:
             output = self.simulator.py_volume_simulate(self.interface, self.volume, timepoints)
-            te = pytime.process_time()
-            print("took", te-ts)
         else:
-            #print("Deterministic simulation", end = " ")
-            ts = pytime.process_time()
             output = self.simulator.py_simulate(self.interface, timepoints)
-            te = pytime.process_time()
-            #print("took", te-ts)
 
         result = output.py_get_result()[-1]
         result_state = self.get_state(result)
