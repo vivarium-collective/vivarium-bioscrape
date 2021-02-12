@@ -13,9 +13,9 @@ import numpy as np
 # vivarium core imports
 from vivarium.library.schema import array_from, array_to
 from vivarium.core.experiment import pp
-from vivarium.core.process import Composite
+from vivarium.core.process import Composer
 from vivarium.core.composition import (
-    simulate_compartment_in_experiment,
+    simulate_composer,
     COMPARTMENT_OUT_DIR,
 )
 from vivarium.plots.simulation_output import plot_simulation_output
@@ -29,7 +29,7 @@ from vivarium_bioscrape.processes.one_way_map import OneWayMap
 NAME = 'bioscrape_connector'
 
 
-class BioscrapeConnector(Composite):
+class BioscrapeConnector(Composer):
     name = NAME
     defaults = {
         'models': {},
@@ -291,7 +291,7 @@ def test_connector():
     sim_settings = {
         'total_time': 10,
         'initial_state': initial_state}
-    output = simulate_compartment_in_experiment(composite, sim_settings)
+    output = simulate_composer(composite, sim_settings)
 
     #DNA should be constant
     assert all([output['1_species']['dna_G'][0] == g for g in output['1_species']['dna_G']])

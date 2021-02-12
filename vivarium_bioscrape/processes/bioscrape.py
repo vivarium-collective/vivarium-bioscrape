@@ -9,7 +9,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import (
-    simulate_process_in_experiment,
+    simulate_process,
     PROCESS_OUT_DIR,
 )
 from vivarium.plots.simulation_output import plot_simulation_output
@@ -235,7 +235,7 @@ def run_bioscrape_process():
     sim_settings = {
         'total_time': 10,
         'initial_state': bioscrape_process.initial_state()}
-    output = simulate_process_in_experiment(bioscrape_process, sim_settings)
+    output = simulate_process(bioscrape_process, sim_settings)
     
 
     # Return the data from the simulation.
