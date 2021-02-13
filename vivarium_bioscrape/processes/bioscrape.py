@@ -143,7 +143,7 @@ class Bioscrape(Process):
                     '_default': 0.0,
                     '_updater': 'accumulate',
                     '_emit': True,
-                    'divider':divider}
+                    '_divider': divider}
                 for species in self.model.get_species()},
             'delta_species': {
                 species: {
@@ -154,12 +154,12 @@ class Bioscrape(Process):
             'rates': {
                 p: {
                     '_default': self.model.get_parameter_dictionary()[p],
-                    '_updater':'set',
+                    '_updater': 'set',
                 }
                 for p in self.model.get_param_list()},
             'globals': {
                 'volume': {
-                    '_default':self.parameters['initial_volume'],
+                    '_default': self.parameters['initial_volume'],
                     '_updater': 'accumulate',
                     '_emit': True}
             }
