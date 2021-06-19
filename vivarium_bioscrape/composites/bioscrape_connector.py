@@ -12,8 +12,8 @@ import numpy as np
 
 # vivarium core imports
 from vivarium.library.schema import array_from, array_to
-from vivarium.core.experiment import pp
-from vivarium.core.process import Composer
+from vivarium.core.engine import pp
+from vivarium.core.composer import Composer
 from vivarium.core.composition import (
     simulate_composer,
     COMPARTMENT_OUT_DIR,
