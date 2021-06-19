@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_482344" name="biocrnpyler_482344" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_31504" name="biocrnpyler_31504" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -12,10 +12,10 @@
       <compartment id="default" name="default" spatialDimensions="3" size="1e-06" constant="true"/>
     </listOfCompartments>
     <listOfSpecies>
-      <species id="G" name="G" compartment="default" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="T" name="T" compartment="default" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="P" name="P" compartment="default" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="complex_G_P_" name="complex_G_P_" compartment="default" initialConcentration="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="G" name="G" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="T" name="T" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="P" name="P" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="complex_G_P_" name="G_P" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
     </listOfSpecies>
     <listOfReactions>
       <reaction id="r0" name="r0" reversible="false">
@@ -30,6 +30,14 @@
           <speciesReference species="complex_G_P_" stoichiometry="1" constant="false"/>
         </listOfProducts>
         <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> k_forward </ci>
+              <ci> G </ci>
+              <ci> P </ci>
+            </apply>
+          </math>
           <listOfLocalParameters>
             <localParameter id="k_forward" value="10"/>
           </listOfLocalParameters>
@@ -47,6 +55,13 @@
           <speciesReference species="P" stoichiometry="1" constant="false"/>
         </listOfProducts>
         <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> k_reverse </ci>
+              <ci> complex_G_P_ </ci>
+            </apply>
+          </math>
           <listOfLocalParameters>
             <localParameter id="k_reverse" value="100"/>
           </listOfLocalParameters>
@@ -65,6 +80,13 @@
           <speciesReference species="P" stoichiometry="1" constant="false"/>
         </listOfProducts>
         <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> k_forward </ci>
+              <ci> complex_G_P_ </ci>
+            </apply>
+          </math>
           <listOfLocalParameters>
             <localParameter id="k_forward" value="0.15"/>
           </listOfLocalParameters>
