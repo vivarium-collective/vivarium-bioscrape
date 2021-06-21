@@ -6,7 +6,7 @@ run with:
 import numpy as np
 
 from vivarium.core.process import Deriver
-from vivarium.core.experiment import pp
+from vivarium.core.engine import pp
 from vivarium.library.schema import array_from, array_to
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 from vivarium_bioscrape.library.mappings import *
@@ -104,7 +104,7 @@ def test_one_to_one():
     bsp2 = Bioscrape(parameters = {
         'sbml_file':'Notebooks/model4.xml'
         })
-
+    
     map_func = one_to_one_map(bsp1, bsp2, {'rna_T':'rna_RNA', 'protein_X':'protein_Protein'})
 
     f = lambda s: 0 if s != "rna_T" else 1

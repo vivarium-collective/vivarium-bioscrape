@@ -12,8 +12,8 @@ import numpy as np
 
 # vivarium core imports
 from vivarium.library.schema import array_from, array_to
-from vivarium.core.experiment import pp
-from vivarium.core.process import Composer
+from vivarium.core.engine import pp
+from vivarium.core.composer import Composer
 from vivarium.core.composition import (
     simulate_composer,
     COMPARTMENT_OUT_DIR,
@@ -52,7 +52,7 @@ class BioscrapeConnector(Composer):
         self.models = {}
         self.connections = {}
         self.connection_counts = {} #Stores the number of connections between pairs of processes, for naming purposes
-        super(BioscrapeConnector, self).__init__(config)
+        super().__init__(config)
         self.topology = self.initial_topology(self.config)
 
     def initial_state(self, config=None):
@@ -82,11 +82,11 @@ class BioscrapeConnector(Composer):
             target_deltas = map_function(modified_source_state)
 
             for species, value in target_deltas.items():
-                target_value = target_state['species'][species]
-                if value != 0.0 and target_value != value:
-                    raise ValueError(
-                        f"initial condition ['{target}_species']['{species}']={target_value} "
-                        f"does not match mapping from model {source} to model {target}")
+                 target_value = target_state['species'][species]
+                 if value != 0.0 and target_value != value:
+                     raise ValueError(
+                         f"initial condition ['{target}_species']['{species}']={target_value} "
+                         f"does not match mapping from model {source} to model {target}")
 
             # set initial state according source and target species
             initial_state[f'{source}_species'] = source_state['species']
@@ -314,7 +314,7 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    output = test_instantiation()
+    output = test_connector()
 
     # plot simulation output
     plot_settings = {}
