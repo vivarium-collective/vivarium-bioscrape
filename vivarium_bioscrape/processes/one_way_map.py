@@ -104,7 +104,7 @@ def test_one_to_one():
     bsp2 = Bioscrape(parameters = {
         'sbml_file':'Notebooks/model4.xml'
         })
-
+    
     map_func = one_to_one_map(bsp1, bsp2, {'rna_T':'rna_RNA', 'protein_X':'protein_Protein'})
 
     f = lambda s: 0 if s != "rna_T" else 1

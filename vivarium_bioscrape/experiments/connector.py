@@ -4,7 +4,7 @@ from vivarium.core.composition import simulate_composite
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 from vivarium_bioscrape.processes.one_way_map import one_to_one_map
 from vivarium_bioscrape.composites.bioscrape_connector import BioscrapeConnector
-
+import pytest
 
 
 def test_one_to_one_map():
@@ -39,8 +39,13 @@ def test_one_to_one_map():
     composer.add_connection(source="dilution", target="txtl", map_function=map_func_21)
 
     # Get the initial state
-    initial_state = composer.initial_state()
 
+    with pytest.raises(ValueError):
+        initial_state = composer.initial_state()
+
+    #reset the initial state
+    dilution_initial_state = {'dilution':{'rna_RNA':0, 'protein_Protein':0}}
+    initial_state = composer.initial_state(dilution_initial_state)
     # make the composite
     composite = composer.generate()
 
