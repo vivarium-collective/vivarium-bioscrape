@@ -8,7 +8,7 @@ with open("README.md", 'r') as readme:
 
 setup(
     name='vivarium-bioscrape',
-    version='0.0.0.6',
+    version='0.0.0.7',
     packages=[
         'vivarium_bioscrape',
         'vivarium_bioscrape.processes',
