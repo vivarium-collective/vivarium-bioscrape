@@ -31,6 +31,7 @@ class Bioscrape(Process):
 
     # declare default parameters as class variables
     defaults = {
+        'internal_timesteps': 100,
         'internal_dt': 0.01,
         'stochastic': False,
         'initial_volume': 1.0,
@@ -94,6 +95,9 @@ class Bioscrape(Process):
         self.interface.py_set_dt(self.internal_dt)
         #Set the volume
         self.volume.py_set_volume(self.parameters['initial_volume']) 
+
+    def calculate_timestep(self, states):
+        return self.parameters['internal_dt'] * self.parameters['internal_timesteps']
 
     def get_species_names(self):
         #Gets the names of teh species in a bioscrape model
